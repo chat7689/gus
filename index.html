@@ -2,230 +2,245 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Gus MacRhodes: Geometry Wave</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gus MacRhodes: EXTREME WAVE</title>
     <style>
         :root {
-            --bg-color: #050505;
-            --primary: #0088ff;
-            --accent: #00ffcc;
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff007f;
+            --bg-dark: #050508;
         }
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
             overflow: hidden;
-            background-color: var(--bg-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            font-family: 'Courier New', Courier, monospace;
         }
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        canvas {
-            display: block;
-            box-shadow: 0 0 50px rgba(0, 136, 255, 0.2);
-        }
-        #ui-overlay {
+        #ui-layer {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             pointer-events: none;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 10;
         }
-        .gus-header {
-            font-size: 24px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: var(--accent);
-            text-transform: uppercase;
-        }
-        #score { font-size: 48px; }
-        #retry-msg {
+        .stats {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 20px; left: 20px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        #score-val { font-size: 50px; font-weight: 900; }
+        .gus-tag { font-size: 14px; letter-spacing: 5px; opacity: 0.8; }
+        
+        #death-screen {
+            position: absolute;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
             text-align: center;
             display: none;
-            background: rgba(0,0,0,0.8);
-            padding: 40px;
-            border: 2px solid var(--primary);
-            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 50px;
+            border: 2px solid var(--neon-pink);
+            box-shadow: 0 0 30px var(--neon-pink);
+            z-index: 100;
+        }
+        button {
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: var(--neon-blue);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-blue);
         }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div id="ui-overlay">
-        <div class="gus-header">Gus MacRhodes Edition</div>
-        <div id="score">0m</div>
+<div id="ui-layer">
+    <div class="stats">
+        <div class="gus-tag">GUS MACRHODES // PROTOCOL</div>
+        <div id="score-val">0000</div>
+        <div id="diff-meter" style="font-size: 12px; color: var(--neon-pink);">DIFFICULTY: 1.0x</div>
     </div>
-    
-    <div id="retry-msg">
-        <h1 style="color: #ff3333;">CRASHED!</h1>
-        <p>Gus MacRhodes demands excellence.</p>
-        <button onclick="resetGame()" style="padding: 10px 20px; cursor: pointer; font-weight: bold;">TRY AGAIN</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
 </div>
+
+<div id="death-screen">
+    <h1 style="color: var(--neon-pink); font-size: 40px; margin-bottom: 10px;">SIGNAL LOST</h1>
+    <p style="color: white; margin-bottom: 30px;">The wave collapsed. Gus MacRhodes expects more.</p>
+    <button onclick="reset()">REBOOT SYSTEM</button>
+</div>
+
+<canvas id="c"></canvas>
 
 <script>
 /**
- * GUS MACRHODES GEOMETRY WAVE ENGINE
+ * GUS MACRHODES: NEON WAVE ENGINE (HARD MODE)
  * Features:
- * - Procedural Level Gen (Triangles & Blocks)
- * - Independent Wave Trail (X-offset physics)
- * - Increasing Difficulty (Speed & Narrowness)
+ * - Exponential Speed Scaling
+ * - Gap Contraction (Difficulty spikes)
+ * - Precision Hitbox Geometry
+ * - Independent Physics-based Neon Trail
  */
 
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const retryMsg = document.getElementById('retry-msg');
+const scoreEl = document.getElementById('score-val');
+const diffEl = document.getElementById('diff-meter');
+const deathScreen = document.getElementById('death-screen');
 
-// Settings
+let width, height;
+let frames = 0;
 let gameActive = true;
-let score = 0;
-let speed = 5;
-const gravity = 0.6;
-const lift = -0.6;
-let difficultyFactor = 1;
 
-// Player Object
-const player = {
-    x: 150,
+// Player Settings
+let player = {
+    x: 0,
     y: 0,
-    size: 20,
     vy: 0,
+    angle: 0,
     isPressing: false,
-    trail: []
+    trail: [],
+    size: 12 // Small hitbox for precision
 };
 
-// Level Data
+// Physics/Game State
+let scrollX = 0;
+let baseSpeed = 7;
+let currentSpeed = 7;
+let gravity = 0.55;
+let lift = -0.55;
 let obstacles = [];
-let decoration = [];
-let nextObstacleX = 600;
+let difficulty = 1.0;
 
-function init() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    player.y = canvas.height / 2;
-    generateInitialLevel();
-    requestAnimationFrame(update);
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    player.x = width * 0.2;
+    player.y = height / 2;
 }
 
-// Input Handlers
+window.addEventListener('resize', resize);
 window.addEventListener('mousedown', () => player.isPressing = true);
 window.addEventListener('mouseup', () => player.isPressing = false);
 window.addEventListener('keydown', (e) => { if(e.code === 'Space') player.isPressing = true; });
 window.addEventListener('keyup', (e) => { if(e.code === 'Space') player.isPressing = false; });
 
-function generateInitialLevel() {
-    for (let i = 0; i < 10; i++) {
-        spawnObstacle();
-    }
-}
-
-function spawnObstacle() {
-    const minGap = Math.max(150, 400 - (score / 10)); // Gap gets tighter
-    const height = 50 + Math.random() * 200;
-    const type = Math.random() > 0.5 ? 'top' : 'bottom';
+function spawnObstacle(xPos) {
+    // Progressively smaller gaps
+    const minGap = Math.max(160, 350 - (difficulty * 25));
+    const gapTop = Math.random() * (height - minGap - 100) + 50;
     
     obstacles.push({
-        x: nextObstacleX,
-        y: type === 'top' ? 0 : canvas.height - height,
-        w: 60,
-        h: height,
-        type: type
+        x: xPos,
+        w: 80,
+        gapTop: gapTop,
+        gapBottom: gapTop + minGap,
+        passed: false
     });
-    
-    nextObstacleX += 300 + Math.random() * 200;
 }
 
-function update() {
-    if (!gameActive) return;
+function initLevel() {
+    obstacles = [];
+    for(let i = 0; i < 5; i++) {
+        spawnObstacle(width + (i * 450));
+    }
+}
 
-    // 1. Move Player & Handle Input
-    if (player.isPressing) {
-        player.vy += lift * 1.5;
+function reset() {
+    player.y = height / 2;
+    player.vy = 0;
+    player.trail = [];
+    frames = 0;
+    difficulty = 1.0;
+    currentSpeed = baseSpeed;
+    gameActive = true;
+    deathScreen.style.display = 'none';
+    initLevel();
+    loop();
+}
+
+function loop() {
+    if(!gameActive) return;
+
+    frames++;
+    // Exponential Difficulty Scaling
+    difficulty = 1.0 + (frames / 1500);
+    currentSpeed = baseSpeed * Math.pow(difficulty, 0.4);
+    diffEl.innerText = `DIFFICULTY: ${difficulty.toFixed(2)}x`;
+    scoreEl.innerText = Math.floor(frames / 10).toString().padStart(4, '0');
+
+    // Movement Physics
+    if(player.isPressing) {
+        player.vy += lift * difficulty;
     } else {
-        player.vy += gravity * 1.5;
+        player.vy += gravity * difficulty;
     }
     
-    // Smooth movement capping
-    player.vy = Math.max(Math.min(player.vy, 8), -8);
+    // Clamp vertical velocity to prevent "teleporting" through walls
+    const maxV = 12 * difficulty;
+    player.vy = Math.max(-maxV, Math.min(maxV, player.vy));
     player.y += player.vy;
 
-    // 2. Trail Physics (The "backward" look)
+    // Trail logic: Pushes points back relative to speed
     player.trail.push({ x: player.x, y: player.y });
-    player.trail.forEach(point => point.x -= speed); // Move trail back with level
-    if (player.trail.length > 100) player.trail.shift();
-
-    // 3. Level Logic
-    score += 0.1;
-    scoreEl.innerText = Math.floor(score) + "m";
-    speed = 5 + (score / 500); // Progressively faster
-
-    // Spawn new obstacles
-    if (obstacles.length > 0 && obstacles[obstacles.length - 1].x < canvas.width + 500) {
-        spawnObstacle();
+    for(let p of player.trail) {
+        p.x -= currentSpeed;
     }
+    if(player.trail.length > 150) player.trail.shift();
 
-    // Cleanup obstacles
-    obstacles = obstacles.filter(o => {
-        o.x -= speed;
-        return o.x + o.w > -100;
-    });
-
-    checkCollisions();
-    draw();
-    requestAnimationFrame(update);
-}
-
-function checkCollisions() {
-    // Ceiling/Floor
-    if (player.y < 0 || player.y > canvas.height) {
-        gameOver();
-    }
-
-    // Obstacles (Triangles/Blocks)
-    obstacles.forEach(o => {
-        if (player.x + 10 > o.x && player.x - 10 < o.x + o.w) {
-            if (o.type === 'top' && player.y - 10 < o.h) gameOver();
-            if (o.type === 'bottom' && player.y + 10 > o.y) gameOver();
+    // Obstacle Logic
+    obstacles.forEach(ob => {
+        ob.x -= currentSpeed;
+        
+        // Accurate Triangle/Box Collision
+        if (player.x + player.size > ob.x && player.x - player.size < ob.x + ob.w) {
+            if (player.y - player.size < ob.gapTop || player.y + player.size > ob.gapBottom) {
+                gameOver();
+            }
         }
     });
+
+    // Recycle Obstacles
+    if(obstacles[0].x < -100) {
+        obstacles.shift();
+        spawnObstacle(obstacles[obstacles.length-1].x + 450);
+    }
+
+    // Ceiling/Floor Death
+    if(player.y < 0 || player.y > height) gameOver();
+
+    draw();
+    requestAnimationFrame(loop);
 }
 
 function draw() {
-    // Clear & Background
-    ctx.fillStyle = '#0a0a15';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Background Pulse
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, width, height);
     
-    // Draw Grid (Geometry Dash Style)
-    ctx.strokeStyle = 'rgba(0, 136, 255, 0.1)';
+    // Moving Grid
+    ctx.strokeStyle = `rgba(0, 242, 255, ${0.05 + (difficulty * 0.02)})`;
     ctx.lineWidth = 1;
-    let gridOffset = (score * 5) % 100;
-    for(let i = -gridOffset; i < canvas.width; i += 100) {
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+    let gridOffset = (frames * currentSpeed) % 100;
+    for(let x = -gridOffset; x < width; x += 100) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
     }
 
-    // Draw Trail
-    if (player.trail.length > 2) {
+    // Draw Neon Trail
+    if(player.trail.length > 2) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = varColor('--neon-pink');
+        ctx.strokeStyle = varColor('--neon-pink');
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
         ctx.beginPath();
-        ctx.strokeStyle = '#00ffcc';
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00ffcc';
         ctx.moveTo(player.trail[0].x, player.trail[0].y);
         for(let i = 1; i < player.trail.length; i++) {
             ctx.lineTo(player.trail[i].x, player.trail[i].y);
@@ -234,62 +249,64 @@ function draw() {
         ctx.shadowBlur = 0;
     }
 
-    // Draw Player (Arrow)
+    // Draw Obstacles (The Tunnels)
+    obstacles.forEach(ob => {
+        ctx.fillStyle = '#11111a';
+        ctx.strokeStyle = varColor('--neon-blue');
+        ctx.lineWidth = 3;
+        
+        // Top Wall
+        ctx.fillRect(ob.x, 0, ob.w, ob.gapTop);
+        ctx.strokeRect(ob.x, 0, ob.w, ob.gapTop);
+        
+        // Bottom Wall
+        ctx.fillRect(ob.x, ob.gapBottom, ob.w, height - ob.gapBottom);
+        ctx.strokeRect(ob.x, ob.gapBottom, ob.w, height - ob.gapBottom);
+
+        // Add "Triangles" inside walls for aesthetic
+        ctx.fillStyle = 'rgba(0, 242, 255, 0.1)';
+        ctx.beginPath();
+        ctx.moveTo(ob.x, ob.gapTop);
+        ctx.lineTo(ob.x + ob.w/2, ob.gapTop - 40);
+        ctx.lineTo(ob.x + ob.w, ob.gapTop);
+        ctx.fill();
+    });
+
+    // Draw Player Arrow
     ctx.save();
     ctx.translate(player.x, player.y);
-    let angle = Math.atan2(player.vy, speed);
-    ctx.rotate(angle);
-    ctx.fillStyle = '#0088ff';
+    let targetAngle = Math.atan2(player.vy, currentSpeed);
+    player.angle += (targetAngle - player.angle) * 0.2;
+    ctx.rotate(player.angle);
+    
+    // Outer Glow
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = varColor('--neon-blue');
+    ctx.fillStyle = 'white';
     ctx.beginPath();
-    ctx.moveTo(15, 0);
-    ctx.lineTo(-15, -10);
-    ctx.lineTo(-15, 10);
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-12, -12);
+    ctx.lineTo(-6, 0);
+    ctx.lineTo(-12, 12);
+    ctx.closePath();
     ctx.fill();
     ctx.restore();
+}
 
-    // Draw Obstacles
-    obstacles.forEach(o => {
-        ctx.fillStyle = '#111';
-        ctx.strokeStyle = '#0088ff';
-        ctx.lineWidth = 2;
-        
-        // Draw as sharp Geometry Dash spikes/blocks
-        ctx.fillRect(o.x, o.y, o.w, o.h);
-        ctx.strokeRect(o.x, o.y, o.w, o.h);
-        
-        // Add detail lines
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.moveTo(o.x, o.y);
-        ctx.lineTo(o.x + o.w, o.y + o.h);
-        ctx.stroke();
-    });
+function varColor(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name);
 }
 
 function gameOver() {
     gameActive = false;
-    retryMsg.style.display = 'block';
+    deathScreen.style.display = 'block';
 }
 
-function resetGame() {
-    score = 0;
-    speed = 5;
-    player.y = canvas.height / 2;
-    player.vy = 0;
-    player.trail = [];
-    obstacles = [];
-    nextObstacleX = 600;
-    gameActive = true;
-    retryMsg.style.display = 'none';
-    generateInitialLevel();
-    requestAnimationFrame(update);
-}
+// Start
+resize();
+initLevel();
+reset();
 
-window.onload = init;
-window.onresize = () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-};
 </script>
 </body>
 </html>
