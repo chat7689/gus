@@ -2,311 +2,271 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gus MacRhodes: EXTREME WAVE</title>
+    <title>GUS MACRHODES: ABSOLUTE ZERO</title>
     <style>
         :root {
-            --neon-blue: #00f2ff;
-            --neon-pink: #ff007f;
-            --bg-dark: #050508;
+            --neon-primary: #00ffff;
+            --neon-secondary: #ff00ff;
+            --bg-deep: #020205;
         }
         body, html {
             margin: 0; padding: 0;
             width: 100%; height: 100%;
             overflow: hidden;
-            background-color: var(--bg-dark);
-            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--bg-deep);
+            font-family: 'Orbitron', sans-serif;
         }
-        #ui-layer {
+        #game-ui {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             pointer-events: none;
             z-index: 10;
         }
-        .stats {
+        .header {
             position: absolute;
-            top: 20px; left: 20px;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
+            top: 30px; left: 40px;
+            color: var(--neon-primary);
+            text-shadow: 0 0 15px var(--neon-primary);
         }
-        #score-val { font-size: 50px; font-weight: 900; }
-        .gus-tag { font-size: 14px; letter-spacing: 5px; opacity: 0.8; }
+        #dist-val { font-size: 60px; font-weight: 800; }
+        .label { font-size: 12px; letter-spacing: 4px; color: white; opacity: 0.6; }
         
-        #death-screen {
+        #death-overlay {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
             display: none;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 50px;
-            border: 2px solid var(--neon-pink);
-            box-shadow: 0 0 30px var(--neon-pink);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+        .death-card {
+            border: 1px solid var(--neon-secondary);
+            padding: 50px;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.2);
         }
         button {
-            background: transparent;
-            border: 2px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 15px 30px;
-            cursor: pointer;
+            background: white;
+            border: none;
+            padding: 15px 40px;
             font-weight: bold;
-            transition: 0.3s;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.2s;
         }
         button:hover {
-            background: var(--neon-blue);
-            color: black;
-            box-shadow: 0 0 20px var(--neon-blue);
+            background: var(--neon-primary);
+            transform: scale(1.1);
+        }
+        #progress-bar {
+            position: absolute;
+            bottom: 0; left: 0;
+            height: 4px;
+            background: var(--neon-primary);
+            width: 0%;
+            box-shadow: 0 0 10px var(--neon-primary);
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div id="ui-layer">
-    <div class="stats">
-        <div class="gus-tag">GUS MACRHODES // PROTOCOL</div>
-        <div id="score-val">0000</div>
-        <div id="diff-meter" style="font-size: 12px; color: var(--neon-pink);">DIFFICULTY: 1.0x</div>
+<div id="game-ui">
+    <div class="header">
+        <div class="label">ENGINE: GUS MACRHODES V3.0</div>
+        <div id="dist-val">00000</div>
+        <div id="status-text" style="color: var(--neon-secondary);">MODE: CALIBRATING...</div>
+    </div>
+    <div id="progress-bar"></div>
+</div>
+
+<div id="death-overlay">
+    <div class="death-card">
+        <h1 style="color: var(--neon-secondary); font-size: 50px; margin: 0;">SYSTEM CRITICAL</h1>
+        <p style="color: white; opacity: 0.8;">Score captured in the MacRhodes archives.</p>
+        <div id="final-score" style="color: var(--neon-primary); font-size: 30px; margin-bottom: 20px;"></div>
+        <button onclick="resetGame()">Initiate Reboot</button>
     </div>
 </div>
 
-<div id="death-screen">
-    <h1 style="color: var(--neon-pink); font-size: 40px; margin-bottom: 10px;">SIGNAL LOST</h1>
-    <p style="color: white; margin-bottom: 30px;">The wave collapsed. Gus MacRhodes expects more.</p>
-    <button onclick="reset()">REBOOT SYSTEM</button>
-</div>
-
-<canvas id="c"></canvas>
+<canvas id="stage"></canvas>
 
 <script>
-/**
- * GUS MACRHODES: NEON WAVE ENGINE (HARD MODE)
- * Features:
- * - Exponential Speed Scaling
- * - Gap Contraction (Difficulty spikes)
- * - Precision Hitbox Geometry
- * - Independent Physics-based Neon Trail
+/** * GUS MACRHODES: ABSOLUTE ZERO ENGINE
+ * A fully procedural, high-intensity Wave implementation.
  */
 
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score-val');
-const diffEl = document.getElementById('diff-meter');
-const deathScreen = document.getElementById('death-screen');
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d', { alpha: false });
+const distEl = document.getElementById('dist-val');
+const statusEl = document.getElementById('status-text');
+const progressBar = document.getElementById('progress-bar');
+const deathOverlay = document.getElementById('death-overlay');
 
-let width, height;
-let frames = 0;
-let gameActive = true;
+// Game constants
+let W, H;
+let frameCount = 0;
+let isDead = false;
+let distance = 0;
 
-// Player Settings
-let player = {
+// Difficulty scaling
+let gameSpeed = 6;
+const MAX_SPEED = 18;
+let gapSize = 300;
+const MIN_GAP = 135;
+
+// Player Logic
+const player = {
     x: 0,
     y: 0,
     vy: 0,
+    size: 8, // Precision hitbox
     angle: 0,
-    isPressing: false,
+    pressed: false,
     trail: [],
-    size: 12 // Small hitbox for precision
+    color: '#00ffff'
 };
 
-// Physics/Game State
-let scrollX = 0;
-let baseSpeed = 7;
-let currentSpeed = 7;
-let gravity = 0.55;
-let lift = -0.55;
+// Procedural Level System
 let obstacles = [];
-let difficulty = 1.0;
+let particles = [];
+let decoration = [];
+let lastObstacleX = 0;
+
+function init() {
+    resize();
+    resetGame();
+    animate();
+}
 
 function resize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-    player.x = width * 0.2;
-    player.y = height / 2;
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    player.x = W * 0.25;
 }
 
-window.addEventListener('resize', resize);
-window.addEventListener('mousedown', () => player.isPressing = true);
-window.addEventListener('mouseup', () => player.isPressing = false);
-window.addEventListener('keydown', (e) => { if(e.code === 'Space') player.isPressing = true; });
-window.addEventListener('keyup', (e) => { if(e.code === 'Space') player.isPressing = false; });
-
-function spawnObstacle(xPos) {
-    // Progressively smaller gaps
-    const minGap = Math.max(160, 350 - (difficulty * 25));
-    const gapTop = Math.random() * (height - minGap - 100) + 50;
-    
-    obstacles.push({
-        x: xPos,
-        w: 80,
-        gapTop: gapTop,
-        gapBottom: gapTop + minGap,
-        passed: false
-    });
-}
-
-function initLevel() {
-    obstacles = [];
-    for(let i = 0; i < 5; i++) {
-        spawnObstacle(width + (i * 450));
-    }
-}
-
-function reset() {
-    player.y = height / 2;
+function resetGame() {
+    isDead = false;
+    distance = 0;
+    frameCount = 0;
+    gameSpeed = 6;
+    gapSize = 320;
+    player.y = H / 2;
     player.vy = 0;
     player.trail = [];
-    frames = 0;
-    difficulty = 1.0;
-    currentSpeed = baseSpeed;
-    gameActive = true;
-    deathScreen.style.display = 'none';
-    initLevel();
-    loop();
+    obstacles = [];
+    particles = [];
+    decoration = [];
+    lastObstacleX = W;
+    
+    deathOverlay.style.display = 'none';
+    
+    // Initial Level Seed
+    for(let i = 0; i < 8; i++) {
+        createObstacle(W + (i * 400));
+    }
 }
 
-function loop() {
-    if(!gameActive) return;
-
-    frames++;
-    // Exponential Difficulty Scaling
-    difficulty = 1.0 + (frames / 1500);
-    currentSpeed = baseSpeed * Math.pow(difficulty, 0.4);
-    diffEl.innerText = `DIFFICULTY: ${difficulty.toFixed(2)}x`;
-    scoreEl.innerText = Math.floor(frames / 10).toString().padStart(4, '0');
-
-    // Movement Physics
-    if(player.isPressing) {
-        player.vy += lift * difficulty;
-    } else {
-        player.vy += gravity * difficulty;
-    }
+function createObstacle(x) {
+    const center = Math.random() * (H - 300) + 150;
+    const width = 80 + Math.random() * 40;
     
-    // Clamp vertical velocity to prevent "teleporting" through walls
-    const maxV = 12 * difficulty;
-    player.vy = Math.max(-maxV, Math.min(maxV, player.vy));
-    player.y += player.vy;
+    obstacles.push({
+        x: x,
+        w: width,
+        top: center - (gapSize / 2),
+        bottom: center + (gapSize / 2),
+        type: Math.random() > 0.8 ? 'hazard' : 'normal',
+        hue: Math.random() * 60 + 180
+    });
+    lastObstacleX = x;
+}
 
-    // Trail logic: Pushes points back relative to speed
+// Input Controllers
+window.addEventListener('mousedown', () => player.pressed = true);
+window.addEventListener('mouseup', () => player.pressed = false);
+window.addEventListener('keydown', (e) => { if(e.code === 'Space') player.pressed = true; });
+window.addEventListener('keyup', (e) => { if(e.code === 'Space') player.pressed = false; });
+window.addEventListener('touchstart', (e) => { e.preventDefault(); player.pressed = true; }, {passive: false});
+window.addEventListener('touchend', () => player.pressed = false);
+
+function update() {
+    if(isDead) return;
+
+    frameCount++;
+    distance += gameSpeed / 10;
+    distEl.innerText = Math.floor(distance).toString().padStart(5, '0');
+
+    // Difficulty Ramp
+    if (gameSpeed < MAX_SPEED) gameSpeed += 0.0015;
+    if (gapSize > MIN_GAP) gapSize -= 0.02;
+    
+    // Status updates
+    if (gameSpeed > 14) statusEl.innerText = "MODE: GODLIKE";
+    else if (gameSpeed > 10) statusEl.innerText = "MODE: HYPER-SPEED";
+    else statusEl.innerText = "MODE: STABLE";
+
+    // Player Physics
+    const accel = 0.7 + (gameSpeed / 40); // Harder to steer at high speed
+    if(player.pressed) player.vy -= accel;
+    else player.vy += accel;
+    
+    player.y += player.vy;
+    player.angle = Math.atan2(player.vy, gameSpeed);
+
+    // Trail Management
     player.trail.push({ x: player.x, y: player.y });
-    for(let p of player.trail) {
-        p.x -= currentSpeed;
-    }
-    if(player.trail.length > 150) player.trail.shift();
+    player.trail.forEach(p => p.x -= gameSpeed);
+    if(player.trail.length > 120) player.trail.shift();
 
     // Obstacle Logic
-    obstacles.forEach(ob => {
-        ob.x -= currentSpeed;
-        
-        // Accurate Triangle/Box Collision
-        if (player.x + player.size > ob.x && player.x - player.size < ob.x + ob.w) {
-            if (player.y - player.size < ob.gapTop || player.y + player.size > ob.gapBottom) {
-                gameOver();
+    obstacles.forEach(o => {
+        o.x -= gameSpeed;
+
+        // Collision Engine (Precision Box)
+        if (player.x + player.size > o.x && player.x - player.size < o.x + o.w) {
+            if (player.y - player.size < o.top || player.y + player.size > o.bottom) {
+                triggerDeath();
             }
         }
     });
 
-    // Recycle Obstacles
-    if(obstacles[0].x < -100) {
+    // Infinite Generator
+    if(obstacles[0].x < -200) {
         obstacles.shift();
-        spawnObstacle(obstacles[obstacles.length-1].x + 450);
+        createObstacle(lastObstacleX + 400 + Math.random() * 50);
     }
 
-    // Ceiling/Floor Death
-    if(player.y < 0 || player.y > height) gameOver();
+    // Border Death
+    if(player.y < 0 || player.y > H) triggerDeath();
 
-    draw();
-    requestAnimationFrame(loop);
+    // Particle FX
+    if(frameCount % 2 === 0) {
+        particles.push({
+            x: player.x - 10,
+            y: player.y,
+            vx: -Math.random() * 5,
+            vy: (Math.random() - 0.5) * 4,
+            life: 1.0
+        });
+    }
+    particles.forEach(p => {
+        p.x += p.vx - gameSpeed;
+        p.y += p.vy;
+        p.life -= 0.02;
+    });
+    particles = particles.filter(p => p.life > 0);
 }
 
 function draw() {
-    // Background Pulse
-    ctx.fillStyle = '#050508';
-    ctx.fillRect(0, 0, width, height);
+    // 1. Background Layer
+    ctx.fillStyle = '#020205';
+    ctx.fillRect(0, 0, W, H);
     
-    // Moving Grid
-    ctx.strokeStyle = `rgba(0, 242, 255, ${0.05 + (difficulty * 0.02)})`;
-    ctx.lineWidth = 1;
-    let gridOffset = (frames * currentSpeed) % 100;
-    for(let x = -gridOffset; x < width; x += 100) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
-    }
-
-    // Draw Neon Trail
-    if(player.trail.length > 2) {
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = varColor('--neon-pink');
-        ctx.strokeStyle = varColor('--neon-pink');
-        ctx.lineWidth = 4;
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        ctx.moveTo(player.trail[0].x, player.trail[0].y);
-        for(let i = 1; i < player.trail.length; i++) {
-            ctx.lineTo(player.trail[i].x, player.trail[i].y);
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-    }
-
-    // Draw Obstacles (The Tunnels)
-    obstacles.forEach(ob => {
-        ctx.fillStyle = '#11111a';
-        ctx.strokeStyle = varColor('--neon-blue');
-        ctx.lineWidth = 3;
-        
-        // Top Wall
-        ctx.fillRect(ob.x, 0, ob.w, ob.gapTop);
-        ctx.strokeRect(ob.x, 0, ob.w, ob.gapTop);
-        
-        // Bottom Wall
-        ctx.fillRect(ob.x, ob.gapBottom, ob.w, height - ob.gapBottom);
-        ctx.strokeRect(ob.x, ob.gapBottom, ob.w, height - ob.gapBottom);
-
-        // Add "Triangles" inside walls for aesthetic
-        ctx.fillStyle = 'rgba(0, 242, 255, 0.1)';
-        ctx.beginPath();
-        ctx.moveTo(ob.x, ob.gapTop);
-        ctx.lineTo(ob.x + ob.w/2, ob.gapTop - 40);
-        ctx.lineTo(ob.x + ob.w, ob.gapTop);
-        ctx.fill();
-    });
-
-    // Draw Player Arrow
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    let targetAngle = Math.atan2(player.vy, currentSpeed);
-    player.angle += (targetAngle - player.angle) * 0.2;
-    ctx.rotate(player.angle);
-    
-    // Outer Glow
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = varColor('--neon-blue');
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.moveTo(18, 0);
-    ctx.lineTo(-12, -12);
-    ctx.lineTo(-6, 0);
-    ctx.lineTo(-12, 12);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-}
-
-function varColor(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name);
-}
-
-function gameOver() {
-    gameActive = false;
-    deathScreen.style.display = 'block';
-}
-
-// Start
-resize();
-initLevel();
-reset();
-
-</script>
-</body>
-</html>
+    // Parallax Grid
