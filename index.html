@@ -2,68 +2,84 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>GUS MACRHODES: NEON TITAN</title>
+    <title>GUS MACRHODES: QUANTUM BIOME</title>
     <style>
-        :root { --neon: #0ff; --accent: #f0f; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; color: white; }
+        :root { --neon: #0ff; --accent: #f0f; --alert: #ff3333; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #020202; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
         canvas { display: block; }
         #hud {
-            position: absolute; top: 30px; left: 30px; pointer-events: none;
-            text-transform: uppercase; letter-spacing: 2px;
+            position: absolute; top: 20px; left: 20px; pointer-events: none;
+            text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
         }
-        .stat-label { font-size: 12px; color: var(--accent); margin-bottom: -5px; }
-        .stat-value { font-size: 32px; font-weight: 900; text-shadow: 0 0 15px var(--neon); margin-bottom: 15px; }
+        .stat-box { background: rgba(0,0,0,0.5); padding: 10px 20px; border-left: 4px solid var(--neon); }
+        .stat-label { font-size: 10px; color: #aaa; margin-bottom: 5px; }
+        .stat-value { font-size: 24px; font-weight: 900; color: var(--neon); }
+        .biome-text { font-size: 18px; color: var(--accent); margin-top: 5px; font-weight: bold; }
+        
         #death-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000;
+            background: radial-gradient(circle, rgba(20,0,0,0.9) 0%, rgba(0,0,0,1) 100%);
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
         }
-        h1 { font-size: 80px; color: var(--accent); text-shadow: 0 0 30px var(--accent); margin: 0; }
+        h1 { font-size: 80px; color: var(--alert); text-shadow: 0 0 30px var(--alert); margin: 0; letter-spacing: 5px; }
+        p { font-size: 20px; color: #aaa; letter-spacing: 2px; }
         button {
-            background: none; border: 2px solid var(--neon); color: var(--neon);
-            padding: 15px 40px; font-size: 20px; cursor: pointer; transition: 0.3s;
-            margin-top: 20px; box-shadow: 0 0 10px var(--neon);
+            background: transparent; border: 2px solid var(--neon); color: var(--neon);
+            padding: 15px 50px; font-size: 20px; cursor: pointer; transition: 0.2s; font-weight: bold; letter-spacing: 2px;
+            margin-top: 30px;
         }
-        button:hover { background: var(--neon); color: black; box-shadow: 0 0 30px var(--neon); }
+        button:hover { background: var(--neon); color: black; box-shadow: 0 0 40px var(--neon); }
     </style>
 </head>
 <body>
 
 <div id="hud">
-    <div class="stat-label">GUS MACRHODES // DISTANCE</div>
-    <div id="distance" class="stat-value">0m</div>
-    <div class="stat-label">VELOCITY MULTIPLIER</div>
-    <div id="speed-mult" class="stat-value">1.00x</div>
+    <div class="stat-box">
+        <div class="stat-label">GUS MACRHODES // METRICS</div>
+        <div id="distance" class="stat-value">0m</div>
+        <div id="speed-mult" class="stat-value" style="font-size:16px;">1.00x SPD</div>
+    </div>
+    <div class="stat-box" style="border-color: var(--accent);">
+        <div class="stat-label">CURRENT SECTOR</div>
+        <div id="biome-name" class="biome-text">CALIBRATING...</div>
+    </div>
 </div>
 
 <div id="death-screen">
-    <div class="stat-label">SYSTEM CRASH</div>
-    <h1 id="crash-text">TERMINATED</h1>
+    <div class="stat-label">GUS MACRHODES PROTOCOL</div>
+    <h1>WAVE COLLAPSE</h1>
     <p id="final-stats">DISTANCE: 0m</p>
-    <button onclick="engine.reset()">REBOOT</button>
+    <button onclick="engine.reset()">REINITIALIZE SEQUENCE</button>
 </div>
 
 <canvas id="stage"></canvas>
 
 <script>
 /**
- * GUS MACRHODES: NEON TITAN ENGINE
- * A high-performance Wave-mode implementation
+ * GUS MACRHODES: QUANTUM BIOME ENGINE
+ * Features: High-response physics, Biome generation, Dense object clustering, Bounding-sphere collisions.
  */
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 
+const BIOMES = [
+    { name: "NEON PILLARS", type: 'pillars' },
+    { name: "ORB CLUSTERS", type: 'circles' },
+    { name: "GEOMETRIC CHAOS", type: 'triangles' },
+    { name: "THE GAUNTLET", type: 'mixed' }
+];
+
 const engine = {
     active: false,
-    width: 0,
-    height: 0,
+    w: 0, h: 0,
     distance: 0,
-    speed: 8,
-    baseSpeed: 8,
+    baseSpeed: 9, speed: 9,
     difficulty: 1,
     frames: 0,
-    hue: 190,
+    hue: 180,
+    biomeIdx: 0,
 
     init() {
         this.resize();
@@ -71,56 +87,54 @@ const engine = {
         this.reset();
         this.render();
     },
-
     resize() {
-        this.width = canvas.width = window.innerWidth;
-        this.height = canvas.height = window.innerHeight;
+        this.w = canvas.width = window.innerWidth;
+        this.h = canvas.height = window.innerHeight;
     },
-
     reset() {
         this.active = true;
         this.distance = 0;
         this.speed = this.baseSpeed;
         this.difficulty = 1;
         this.frames = 0;
-        this.hue = 190;
+        this.hue = 180;
+        this.biomeIdx = 0;
         player.init();
         world.init();
         document.getElementById('death-screen').style.display = 'none';
     },
-
     die() {
         this.active = false;
         document.getElementById('death-screen').style.display = 'flex';
-        document.getElementById('final-stats').innerText = `TOTAL DISTANCE: ${Math.floor(this.distance)}m`;
+        document.getElementById('final-stats').innerText = `SECTOR: ${BIOMES[this.biomeIdx].name} // DISTANCE: ${Math.floor(this.distance)}m`;
     },
-
     update() {
         if (!this.active) return;
-
         this.frames++;
-        // Difficulty Ramping
-        this.difficulty = 1 + (this.distance / 5000);
-        this.speed = this.baseSpeed * Math.pow(this.difficulty, 0.5);
         
-        // Distance increases proportional to current speed
+        // Progressive Difficulty: Speed & Density increase over time
+        this.difficulty = 1 + (this.distance / 4000); 
+        this.speed = this.baseSpeed * Math.pow(this.difficulty, 0.45);
         this.distance += (this.speed / 10);
-        this.hue = (190 + (this.distance / 50)) % 360;
+        this.hue = (180 + (this.distance / 30)) % 360;
+
+        // Change Biome every 800 meters
+        this.biomeIdx = Math.floor(this.distance / 800) % BIOMES.length;
 
         player.update();
         world.update();
 
-        // Update HUD
+        // UI Updates
         document.getElementById('distance').innerText = Math.floor(this.distance) + "m";
-        document.getElementById('speed-mult').innerText = (this.speed / this.baseSpeed).toFixed(2) + "x";
+        document.getElementById('speed-mult').innerText = (this.speed / this.baseSpeed).toFixed(2) + "x SPD";
+        document.getElementById('biome-name').innerText = BIOMES[this.biomeIdx].name;
+        document.getElementById('biome-name').style.color = `hsl(${this.hue + 60}, 100%, 60%)`;
     },
-
     render() {
         this.update();
-
-        // Draw World
+        // Background Clear
         ctx.fillStyle = '#050508';
-        ctx.fillRect(0, 0, this.width, this.height);
+        ctx.fillRect(0, 0, this.w, this.h);
 
         world.drawBackground();
         world.drawObstacles();
@@ -131,172 +145,221 @@ const engine = {
 };
 
 const player = {
-    x: 0,
-    y: 0,
-    vy: 0,
+    x: 0, y: 0, vy: 0,
     isPressing: false,
-    size: 10,
+    size: 8, // Precision hitbox
     trail: [],
     
     init() {
-        this.x = engine.width * 0.2;
-        this.y = engine.height / 2;
+        this.x = engine.w * 0.25;
+        this.y = engine.h / 2;
         this.vy = 0;
         this.trail = [];
     },
-
     update() {
-        const gravity = 0.6 * engine.difficulty;
-        const lift = -0.6 * engine.difficulty;
+        // Tighter Control Physics: Higher gravity/lift allows faster zig-zags
+        const gravity = 0.8 * engine.difficulty;
+        const lift = -0.8 * engine.difficulty;
         
         this.vy += this.isPressing ? lift : gravity;
         
-        // Speed cap
-        const term = 10 * engine.difficulty;
+        // Terminal velocity scales with difficulty to keep angles sharp
+        const term = 14 * engine.difficulty; 
         if(this.vy > term) this.vy = term;
         if(this.vy < -term) this.vy = -term;
 
         this.y += this.vy;
 
-        // Trail Physics
+        // Trail Logic
         this.trail.push({ x: this.x, y: this.y });
         this.trail.forEach(p => p.x -= engine.speed);
-        if (this.trail.length > 120) this.trail.shift();
+        if (this.trail.length > 100) this.trail.shift(); // Keep trail length manageable
 
-        // Bounds
-        if (this.y < 0 || this.y > engine.height) engine.die();
+        // Screen Bounds (Death)
+        if (this.y < 0 || this.y > engine.h) engine.die();
     },
-
     draw() {
-        // Trail
-        if (this.trail.length > 2) {
+        // Draw Trail
+        if (this.trail.length > 1) {
             ctx.beginPath();
-            ctx.strokeStyle = `hsl(${engine.hue}, 100%, 70%)`;
-            ctx.lineWidth = 4;
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = `hsl(${engine.hue}, 100%, 50%)`;
+            ctx.strokeStyle = `hsl(${engine.hue}, 100%, 60%)`;
+            ctx.lineWidth = 5;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = `hsl(${engine.hue}, 100%, 60%)`;
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
             for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
             ctx.stroke();
             ctx.shadowBlur = 0;
         }
 
-        // Arrow
+        // Draw Player Arrow
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(Math.atan2(this.vy, engine.speed));
         ctx.fillStyle = '#fff';
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 15;
         ctx.shadowColor = '#fff';
         ctx.beginPath();
-        ctx.moveTo(18, 0); ctx.lineTo(-12, -12); ctx.lineTo(-6, 0); ctx.lineTo(-12, 12);
+        ctx.moveTo(20, 0); ctx.lineTo(-12, -14); ctx.lineTo(-4, 0); ctx.lineTo(-12, 14);
         ctx.fill();
         ctx.restore();
     }
 };
 
 const world = {
-    obstacles: [],
-    lastSpawnX: 0,
+    obs: [],
+    lastX: 0,
 
     init() {
-        this.obstacles = [];
-        this.lastSpawnX = engine.width;
-        for(let i=0; i<8; i++) this.spawn();
+        this.obs = [];
+        this.lastX = engine.w;
+        for(let i=0; i<15; i++) this.spawn();
     },
 
     spawn() {
-        const type = Math.random();
-        const x = this.lastSpawnX + 400 + (Math.random() * 200);
-        
-        if (type < 0.4) {
-            // Neon Pillars
-            const gap = Math.max(180, 350 - (engine.difficulty * 25));
-            const topHeight = Math.random() * (engine.height - gap - 100) + 50;
-            this.obstacles.push({ type: 'rect', x, w: 80, t: 0, h: topHeight });
-            this.obstacles.push({ type: 'rect', x, w: 80, t: topHeight + gap, h: engine.height });
-        } else if (type < 0.7) {
-            // Neon Orbs (Circles)
-            this.obstacles.push({ 
-                type: 'circle', 
-                x, 
-                y: Math.random() * (engine.height - 200) + 100, 
-                r: 40 + (Math.random() * 40) 
-            });
-        } else {
-            // Double Diamond
-            const mid = engine.height / 2;
-            this.obstacles.push({ type: 'circle', x, y: mid - 150, r: 50 });
-            this.obstacles.push({ type: 'circle', x, y: mid + 150, r: 50 });
+        const biome = BIOMES[engine.biomeIdx].type;
+        // As difficulty goes up, spawn gap decreases (things get closer together)
+        const spawnGap = Math.max(120, 350 - (engine.difficulty * 40)); 
+        const x = this.lastX + spawnGap + (Math.random() * 50);
+        const midY = engine.h / 2;
+
+        let spawnType = biome;
+        if (biome === 'mixed') {
+            const r = Math.random();
+            if(r < 0.33) spawnType = 'pillars';
+            else if (r < 0.66) spawnType = 'circles';
+            else spawnType = 'triangles';
         }
+
+        if (spawnType === 'pillars') {
+            const gap = Math.max(160, 350 - (engine.difficulty * 30));
+            const w = 40 + Math.random() * 60; // Varying widths
+            const topH = Math.random() * (engine.h - gap - 100) + 50;
+            this.obs.push({ type: 'rect', x, w, y: 0, h: topH });
+            this.obs.push({ type: 'rect', x, w, y: topH + gap, h: engine.h });
         
-        this.lastSpawnX = x;
+        } else if (spawnType === 'circles') {
+            // Natural clustering: 1 to 3 circles spawned together
+            const count = Math.floor(1 + Math.random() * 3);
+            const baseCenter = Math.random() * (engine.h - 200) + 100;
+            for(let i=0; i<count; i++) {
+                const offsetX = x + (Math.random() * 150 - 75);
+                const offsetY = baseCenter + (Math.sin(engine.frames * 0.1 + i) * 150);
+                const r = 20 + Math.random() * 50; // Varying sizes
+                this.obs.push({ type: 'circle', x: offsetX, y: offsetY, r });
+            }
+        
+        } else if (spawnType === 'triangles') {
+            // Spinning triangles
+            const count = Math.floor(1 + Math.random() * 2);
+            for(let i=0; i<count; i++) {
+                const r = 40 + Math.random() * 60; // Size
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                const spin = dir * (0.02 + Math.random() * 0.05); // Spin speed
+                this.obs.push({ 
+                    type: 'tri', 
+                    x: x + (i*100), 
+                    y: Math.random() * (engine.h - 100) + 50, 
+                    r, angle: Math.random() * Math.PI, spin 
+                });
+            }
+        }
+        this.lastX = x;
     },
 
     update() {
-        this.obstacles.forEach(o => {
+        for (let i = this.obs.length - 1; i >= 0; i--) {
+            const o = this.obs[i];
             o.x -= engine.speed;
-            
-            // Collision Logic
-            if (o.type === 'rect') {
-                if (player.x + 8 > o.x && player.x - 8 < o.x + o.w) {
-                    if (player.y - 8 < o.h && o.t === 0) engine.die();
-                    if (player.y + 8 > o.t && o.t !== 0) engine.die();
-                }
-            } else if (o.type === 'circle') {
-                const dx = player.x - o.x;
-                const dy = player.y - o.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < o.r + 8) engine.die();
-            }
-        });
 
-        if (this.obstacles.length > 0 && this.obstacles[0].x < -200) {
-            this.obstacles.shift();
+            if (o.type === 'tri') o.angle += o.spin;
+
+            // Collisions
+            if (o.type === 'rect') {
+                if (player.x + player.size > o.x && player.x - player.size < o.x + o.w) {
+                    if (player.y - player.size < o.y + o.h && player.y + player.size > o.y) engine.die();
+                }
+            } else if (o.type === 'circle' || o.type === 'tri') {
+                // We use bounding-circle collision for spinning triangles for fair/smooth gameplay
+                const dist = Math.hypot(player.x - o.x, player.y - o.y);
+                const hitRadius = o.type === 'tri' ? o.r * 0.8 : o.r; // slightly forgiving on triangles
+                if (dist < hitRadius + player.size) engine.die();
+            }
+
+            // Cleanup off-screen
+            if (o.x < -200) this.obs.splice(i, 1);
+        }
+
+        // Keep spawning to stay ahead of the player
+        while (this.lastX - player.x < engine.w + 1000) {
             this.spawn();
         }
     },
 
     drawBackground() {
-        ctx.strokeStyle = `hsla(${engine.hue}, 100%, 50%, 0.05)`;
-        const spacing = 100;
+        ctx.strokeStyle = `hsla(${engine.hue}, 100%, 50%, 0.1)`;
+        ctx.lineWidth = 1;
+        const spacing = 80;
         const offset = (engine.distance * 5) % spacing;
-        for(let x = -offset; x < engine.width; x += spacing) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, engine.height); ctx.stroke();
+        for(let x = -offset; x < engine.w; x += spacing) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, engine.h); ctx.stroke();
         }
     },
 
     drawObstacles() {
-        this.obstacles.forEach(o => {
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = `hsl(${engine.hue}, 100%, 50%)`;
-            ctx.strokeStyle = `hsl(${engine.hue}, 100%, 50%)`;
+        ctx.shadowBlur = 15;
+        
+        this.obs.forEach(o => {
+            const oHue = (engine.hue + (o.x * 0.05)) % 360; // Slightly alter hue based on X position
+            ctx.shadowColor = `hsl(${oHue}, 100%, 50%)`;
+            ctx.strokeStyle = `hsl(${oHue}, 100%, 60%)`;
+            ctx.fillStyle = '#080808';
             ctx.lineWidth = 3;
-            ctx.fillStyle = '#111';
 
             if (o.type === 'rect') {
-                ctx.fillRect(o.x, o.t, o.w, o.h);
-                ctx.strokeRect(o.x, o.t, o.w, o.h);
-            } else {
+                ctx.fillRect(o.x, o.y, o.w, o.h);
+                ctx.strokeRect(o.x, o.y, o.w, o.h);
+            } 
+            else if (o.type === 'circle') {
                 ctx.beginPath();
                 ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+            } 
+            else if (o.type === 'tri') {
+                ctx.save();
+                ctx.translate(o.x, o.y);
+                ctx.rotate(o.angle);
+                ctx.beginPath();
+                // Equilateral triangle math
+                ctx.moveTo(0, -o.r);
+                ctx.lineTo(o.r * 0.866, o.r * 0.5);
+                ctx.lineTo(-o.r * 0.866, o.r * 0.5);
+                ctx.closePath();
+                ctx.fill(); ctx.stroke();
+                
+                // Inner deco
+                ctx.beginPath();
+                ctx.moveTo(0, -o.r*0.4); ctx.lineTo(o.r*0.34, o.r*0.2); ctx.lineTo(-o.r*0.34, o.r*0.2);
+                ctx.closePath();
+                ctx.fillStyle = `hsla(${oHue}, 100%, 50%, 0.2)`;
                 ctx.fill();
-                ctx.stroke();
+                ctx.restore();
             }
         });
         ctx.shadowBlur = 0;
     }
 };
 
-// Controls
-const handleInput = (s) => player.isPressing = s;
-window.addEventListener('mousedown', () => handleInput(true));
-window.addEventListener('mouseup', () => handleInput(false));
-window.addEventListener('keydown', (e) => { if(e.code === 'Space') handleInput(true) });
-window.addEventListener('keyup', (e) => { if(e.code === 'Space') handleInput(false) });
-window.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(true); }, {passive: false});
-window.addEventListener('touchend', (e) => { e.preventDefault(); handleInput(false); }, {passive: false});
+// Input
+const setPress = (val) => player.isPressing = val;
+window.onmousedown = () => setPress(true);
+window.onmouseup = () => setPress(false);
+window.onkeydown = (e) => { if(e.code === 'Space') setPress(true); };
+window.onkeyup = (e) => { if(e.code === 'Space') setPress(false); };
+window.ontouchstart = (e) => { e.preventDefault(); setPress(true); };
+window.ontouchend = (e) => { e.preventDefault(); setPress(false); };
 
+// Start
 engine.init();
 
 </script>
