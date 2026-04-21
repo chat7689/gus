@@ -3,372 +3,164 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JUDE SMITH | ELITE STATUS</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
+<title>Gus Macrhodes Geometry Wave</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-    font-family:Poppins, sans-serif;
-    background:#050510;
-    color:white;
-    overflow-x:hidden;
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: black;
+    color: white;
+    text-align: center;
 }
 
-/* PARTICLE CANVAS */
-#bgCanvas{
-    position:fixed;
-    top:0;
-    left:0;
-    z-index:-1;
+h1 {
+    color: cyan;
 }
 
-/* NAV */
-nav{
-    position:fixed;
-    width:100%;
-    background:rgba(0,0,0,0.6);
-    backdrop-filter:blur(10px);
-    padding:15px;
-    text-align:center;
-    z-index:1000;
+#gameCanvas {
+    background: #111;
+    display: block;
+    margin: 20px auto;
+    border: 2px solid cyan;
 }
 
-nav a{
-    margin:0 20px;
-    color:white;
-    text-decoration:none;
-    font-weight:600;
-    transition:0.3s;
-}
-nav a:hover{color:#00ffff}
-
-/* HERO */
-.hero{
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-}
-
-.hero h1{
-    font-family:Orbitron;
-    font-size:4rem;
-    background:linear-gradient(to right,#00ffff,#ff00ff);
-    -webkit-background-clip:text;
-    color:transparent;
-}
-
-#respectCount{
-    font-size:3rem;
-    margin:20px 0;
-    font-weight:bold;
-}
-
-#combo{
-    font-size:1.2rem;
-    color:#00ffcc;
-}
-
-.respect-btn{
-    padding:20px 40px;
-    font-size:1.5rem;
-    border:none;
-    border-radius:50px;
-    cursor:pointer;
-    background:#00ffff;
-    color:black;
-    font-weight:bold;
-    transition:0.2s;
-}
-.respect-btn:hover{transform:scale(1.1)}
-
-.shake{
-    animation:shake 0.2s;
-}
-@keyframes shake{
-    0%{transform:translateX(0)}
-    25%{transform:translateX(-5px)}
-    50%{transform:translateX(5px)}
-    75%{transform:translateX(-5px)}
-    100%{transform:translateX(0)}
-}
-
-/* FLOATING TEXT */
-.floating{
-    position:absolute;
-    font-weight:bold;
-    pointer-events:none;
-    animation:floatUp 1s ease-out forwards;
-}
-@keyframes floatUp{
-    0%{opacity:1;transform:translateY(0)}
-    100%{opacity:0;transform:translateY(-80px)}
-}
-
-/* SECTIONS */
-.section{
-    padding:120px 10%;
-    text-align:center;
-}
-
-.card{
-    background:rgba(255,255,255,0.05);
-    padding:30px;
-    margin:20px;
-    border-radius:15px;
-    display:inline-block;
-    width:250px;
-    transition:0.3s;
-}
-.card:hover{
-    background:rgba(255,255,255,0.15);
-    transform:translateY(-10px);
-}
-
-/* MINI GAME BOX */
-.gameBox{
-    margin-top:40px;
-    padding:40px;
-    background:rgba(255,255,255,0.05);
-    border-radius:20px;
-}
-
-/* DODGE GAME */
-#dodgeArea{
-    width:100%;
-    height:200px;
-    background:#111;
-    position:relative;
-    overflow:hidden;
-    margin-top:20px;
-}
-.enemy{
-    width:40px;
-    height:40px;
-    background:red;
-    position:absolute;
-    top:80px;
-}
-.player{
-    width:40px;
-    height:40px;
-    background:#00ffff;
-    position:absolute;
-    bottom:10px;
-    left:50%;
-    transform:translateX(-50%);
-}
-
-/* AURA MODE */
-.aura{
-    box-shadow:0 0 40px #00ffff, 0 0 80px #ff00ff;
-}
-
-/* FOOTER */
-footer{
-    padding:40px;
-    text-align:center;
-    background:#000;
+#story {
+    max-width: 800px;
+    margin: auto;
+    padding: 10px;
+    line-height: 1.5;
 }
 </style>
 </head>
-
 <body>
 
-<canvas id="bgCanvas"></canvas>
+<h1>Gus Macrhodes and the Geometry Wave</h1>
 
-<nav>
-<a href="#respect">Respect</a>
-<a href="#stats">Stats</a>
-<a href="#training">Training</a>
-<a href="#reflex">Reflex Mode</a>
-</nav>
-
-<section class="hero" id="respect">
-<h1>JUDE SMITH</h1>
-<div id="respectCount">Respect: 0</div>
-<div id="combo">Combo: x1</div>
-<button class="respect-btn" onclick="gainRespect(event)">+ RESPECT</button>
-</section>
-
-<section class="section" id="stats">
-<h2>Elite Attributes</h2>
-<div class="card">Height: Top Tier Presence</div>
-<div class="card">Strength: Gym Locked</div>
-<div class="card">Discipline: 100%</div>
-<div class="card">Advisory Mode: Punch-Out Champion</div>
-</section>
-
-<section class="section" id="training">
-<h2>Training Clicker Mode 💪</h2>
-<p>Spam clicks to build strength.</p>
-<div class="gameBox">
-<button class="respect-btn" onclick="train()">Lift</button>
-<div id="trainingPoints">Training Points: 0</div>
+<div id="story">
+<p>Gus Macrhodes is the greatest wave pilot in the universe. Everyone talks about Gus. Gus trains every day. Gus never gives up. Gus believes in geometry. Gus IS geometry.</p>
+<p>One day, Gus Macrhodes entered the Geometry Wave challenge. It was the hardest challenge ever made. Gus said, "I will beat this." And Gus meant it.</p>
+<p>Now YOU must help Gus Macrhodes survive the Geometry Wave.</p>
 </div>
-</section>
 
-<section class="section" id="reflex">
-<h2>Punch-Out Reflex Mode 🎮</h2>
-<p>Use arrow keys to dodge the red punch.</p>
-<div id="dodgeArea">
-<div class="player" id="player"></div>
-</div>
-<div id="score">Score: 0</div>
-</section>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
 
-<footer>
-Aura Status: <span id="auraStatus">Locked</span>
-</footer>
+<p>Click or hold SPACE to go up. Release to go down.</p>
 
 <script>
-/* RESPECT SYSTEM */
-let respect = localStorage.getItem("respect") ? parseInt(localStorage.getItem("respect")) : 0;
-let combo = 1;
-let lastClick = 0;
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const respectDisplay = document.getElementById("respectCount");
-const comboDisplay = document.getElementById("combo");
-respectDisplay.innerText = "Respect: " + respect;
+let waveY = canvas.height / 2;
+let velocity = 0;
+let gravity = 0.4;
+let lift = -0.7;
 
-function gainRespect(e){
-    let now = Date.now();
-    if(now - lastClick < 500){
-        combo++;
-    } else {
-        combo = 1;
-    }
-    lastClick = now;
-
-    let gained = combo * 10;
-    respect += gained;
-
-    localStorage.setItem("respect", respect);
-    respectDisplay.innerText = "Respect: " + respect;
-    comboDisplay.innerText = "Combo: x" + combo;
-
-    floatText(e.clientX, e.clientY, "+" + gained);
-    playBeep();
-
-    if(combo >= 10){
-        document.body.classList.add("shake");
-        setTimeout(()=>document.body.classList.remove("shake"),200);
-    }
-
-    if(respect >= 1000){
-        document.body.classList.add("aura");
-        document.getElementById("auraStatus").innerText = "UNLOCKED";
-    }
-}
-
-function floatText(x,y,text){
-    let el = document.createElement("div");
-    el.className="floating";
-    el.style.left=x+"px";
-    el.style.top=y+"px";
-    el.innerText=text;
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),1000);
-}
-
-/* SOUND */
-function playBeep(){
-    let ctx = new (window.AudioContext||window.webkitAudioContext)();
-    let osc = ctx.createOscillator();
-    osc.type="square";
-    osc.frequency.value=200;
-    osc.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime+0.05);
-}
-
-/* TRAINING MODE */
-let trainingPoints = 0;
-function train(){
-    trainingPoints++;
-    document.getElementById("trainingPoints").innerText =
-    "Training Points: " + trainingPoints;
-}
-
-/* DODGE GAME */
-const dodgeArea = document.getElementById("dodgeArea");
-const player = document.getElementById("player");
+let obstacles = [];
+let frame = 0;
 let score = 0;
+let gameOver = false;
 
-document.addEventListener("keydown", e=>{
-    if(e.key==="ArrowLeft"){
-        player.style.left = (player.offsetLeft - 30)+"px";
+let pressing = false;
+
+// Gus Macrhodes wave
+function drawWave() {
+    ctx.fillStyle = "cyan";
+    ctx.beginPath();
+    ctx.moveTo(100, waveY);
+    ctx.lineTo(110, waveY - 10);
+    ctx.lineTo(120, waveY);
+    ctx.lineTo(110, waveY + 10);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function createObstacle() {
+    let gap = 120;
+    let top = Math.random() * (canvas.height - gap);
+    obstacles.push({ x: canvas.width, top: top, bottom: top + gap });
+}
+
+function drawObstacles() {
+    ctx.fillStyle = "white";
+    obstacles.forEach(obs => {
+        ctx.fillRect(obs.x, 0, 20, obs.top);
+        ctx.fillRect(obs.x, obs.bottom, 20, canvas.height);
+    });
+}
+
+function updateObstacles() {
+    obstacles.forEach(obs => {
+        obs.x -= 4;
+    });
+
+    obstacles = obstacles.filter(obs => obs.x > -20);
+
+    if (frame % 90 === 0) {
+        createObstacle();
     }
-    if(e.key==="ArrowRight"){
-        player.style.left = (player.offsetLeft + 30)+"px";
+}
+
+function checkCollision() {
+    for (let obs of obstacles) {
+        if (100 > obs.x && 100 < obs.x + 20) {
+            if (waveY < obs.top || waveY > obs.bottom) {
+                gameOver = true;
+            }
+        }
     }
+
+    if (waveY <= 0 || waveY >= canvas.height) {
+        gameOver = true;
+    }
+}
+
+function update() {
+    if (gameOver) {
+        ctx.fillStyle = "red";
+        ctx.font = "40px Arial";
+        ctx.fillText("Gus Failed... Press R", 200, 200);
+        return;
+    }
+
+    frame++;
+    score++;
+
+    if (pressing) {
+        velocity += lift;
+    } else {
+        velocity += gravity;
+    }
+
+    velocity *= 0.95;
+    waveY += velocity;
+
+    updateObstacles();
+    checkCollision();
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawWave();
+    drawObstacles();
+
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial";
+    ctx.fillText("Score: " + score, 10, 20);
+
+    requestAnimationFrame(update);
+}
+
+// Controls
+window.addEventListener("mousedown", () => pressing = true);
+window.addEventListener("mouseup", () => pressing = false);
+window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") pressing = true;
+    if (e.code === "KeyR") location.reload();
+});
+window.addEventListener("keyup", (e) => {
+    if (e.code === "Space") pressing = false;
 });
 
-function spawnEnemy(){
-    let enemy = document.createElement("div");
-    enemy.className="enemy";
-    enemy.style.left = Math.random()* (dodgeArea.offsetWidth-40) +"px";
-    dodgeArea.appendChild(enemy);
-
-    let move = setInterval(()=>{
-        enemy.style.top = enemy.offsetTop + 5 + "px";
-
-        if(enemy.offsetTop > 200){
-            enemy.remove();
-            score++;
-            document.getElementById("score").innerText="Score: "+score;
-            clearInterval(move);
-        }
-
-        if(collide(enemy,player)){
-            score=0;
-            document.getElementById("score").innerText="Score: 0";
-            enemy.remove();
-            clearInterval(move);
-        }
-    },30);
-}
-
-function collide(a,b){
-    return !(a.offsetTop > b.offsetTop + b.offsetHeight ||
-             a.offsetTop + a.offsetHeight < b.offsetTop ||
-             a.offsetLeft > b.offsetLeft + b.offsetWidth ||
-             a.offsetLeft + a.offsetWidth < b.offsetLeft);
-}
-
-setInterval(spawnEnemy,1500);
-
-/* PARTICLE BACKGROUND */
-const canvas = document.getElementById("bgCanvas");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let particles=[];
-for(let i=0;i<100;i++){
-    particles.push({
-        x:Math.random()*canvas.width,
-        y:Math.random()*canvas.height,
-        dx:(Math.random()-0.5),
-        dy:(Math.random()-0.5)
-    });
-}
-
-function animate(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle="#00ffff";
-    particles.forEach(p=>{
-        p.x+=p.dx;
-        p.y+=p.dy;
-        ctx.fillRect(p.x,p.y,2,2);
-    });
-    requestAnimationFrame(animate);
-}
-animate();
+update();
 </script>
 
 </body>
