@@ -4,269 +4,279 @@
     <meta charset="UTF-8">
     <title>GUS MACRHODES: ABSOLUTE ZERO</title>
     <style>
-        :root {
-            --neon-primary: #00ffff;
-            --neon-secondary: #ff00ff;
-            --bg-deep: #020205;
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
+        canvas { display: block; }
+        #overlay {
+            position: absolute; top: 20px; left: 20px; color: #0ff;
+            text-shadow: 0 0 10px #0ff; pointer-events: none;
         }
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-deep);
-            font-family: 'Orbitron', sans-serif;
+        #death-screen {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; color: white; display: none;
+            background: rgba(0,0,0,0.9); border: 2px solid #f0f; padding: 40px;
+            box-shadow: 0 0 50px #f0f; z-index: 100;
         }
-        #game-ui {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 10;
+        .gus-text { font-size: 12px; letter-spacing: 3px; color: #f0f; }
+        #score { font-size: 60px; margin: 0; }
+        button { 
+            background: transparent; border: 1px solid #0ff; color: #0ff; 
+            padding: 10px 20px; cursor: pointer; margin-top: 20px;
         }
-        .header {
-            position: absolute;
-            top: 30px; left: 40px;
-            color: var(--neon-primary);
-            text-shadow: 0 0 15px var(--neon-primary);
-        }
-        #dist-val { font-size: 60px; font-weight: 800; }
-        .label { font-size: 12px; letter-spacing: 4px; color: white; opacity: 0.6; }
-        
-        #death-overlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            backdrop-filter: blur(8px);
-        }
-        .death-card {
-            border: 1px solid var(--neon-secondary);
-            padding: 50px;
-            text-align: center;
-            box-shadow: 0 0 50px rgba(255, 0, 255, 0.2);
-        }
-        button {
-            background: white;
-            border: none;
-            padding: 15px 40px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: 0.2s;
-        }
-        button:hover {
-            background: var(--neon-primary);
-            transform: scale(1.1);
-        }
-        #progress-bar {
-            position: absolute;
-            bottom: 0; left: 0;
-            height: 4px;
-            background: var(--neon-primary);
-            width: 0%;
-            box-shadow: 0 0 10px var(--neon-primary);
-        }
+        button:hover { background: #0ff; color: #000; }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div id="game-ui">
-    <div class="header">
-        <div class="label">ENGINE: GUS MACRHODES V3.0</div>
-        <div id="dist-val">00000</div>
-        <div id="status-text" style="color: var(--neon-secondary);">MODE: CALIBRATING...</div>
-    </div>
-    <div id="progress-bar"></div>
+<div id="overlay">
+    <div class="gus-text">GUS MACRHODES // ENGINE V4.0 // ACTIVE</div>
+    <div id="score">0</div>
+    <div id="status">STATUS: NORMALIZE</div>
 </div>
 
-<div id="death-overlay">
-    <div class="death-card">
-        <h1 style="color: var(--neon-secondary); font-size: 50px; margin: 0;">SYSTEM CRITICAL</h1>
-        <p style="color: white; opacity: 0.8;">Score captured in the MacRhodes archives.</p>
-        <div id="final-score" style="color: var(--neon-primary); font-size: 30px; margin-bottom: 20px;"></div>
-        <button onclick="resetGame()">Initiate Reboot</button>
-    </div>
+<div id="death-screen">
+    <h1 style="color:#f0f">CRITICAL FAILURE</h1>
+    <p>LEVEL PROGRESSION TERMINATED BY GUS MACRHODES</p>
+    <button onclick="resetGame()">REINITIALIZE</button>
 </div>
 
-<canvas id="stage"></canvas>
+<canvas id="gameCanvas"></canvas>
 
 <script>
-/** * GUS MACRHODES: ABSOLUTE ZERO ENGINE
- * A fully procedural, high-intensity Wave implementation.
+/**
+ * GUS MACRHODES: ABSOLUTE ZERO ENGINE
+ * ----------------------------------
+ * This engine uses a state-based procedural generator.
  */
 
-const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d', { alpha: false });
-const distEl = document.getElementById('dist-val');
-const statusEl = document.getElementById('status-text');
-const progressBar = document.getElementById('progress-bar');
-const deathOverlay = document.getElementById('death-overlay');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const statusEl = document.getElementById('status');
+const deathScreen = document.getElementById('death-screen');
 
-// Game constants
-let W, H;
-let frameCount = 0;
-let isDead = false;
-let distance = 0;
+let w, h, frames, score, gameActive;
+let player, obstacles, particles, cameraShake;
+let difficulty, currentSpeed, targetSpeed;
 
-// Difficulty scaling
-let gameSpeed = 6;
-const MAX_SPEED = 18;
-let gapSize = 300;
-const MIN_GAP = 135;
-
-// Player Logic
-const player = {
-    x: 0,
-    y: 0,
-    vy: 0,
-    size: 8, // Precision hitbox
-    angle: 0,
-    pressed: false,
-    trail: [],
-    color: '#00ffff'
+const SETTINGS = {
+    baseGravity: 0.5,
+    baseLift: -0.5,
+    maxVelocity: 9,
+    obstacleWidth: 70,
+    spawnRate: 400
 };
 
-// Procedural Level System
-let obstacles = [];
-let particles = [];
-let decoration = [];
-let lastObstacleX = 0;
-
 function init() {
-    resize();
-    resetGame();
-    animate();
-}
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    
+    player = {
+        x: w * 0.25,
+        y: h / 2,
+        vy: 0,
+        isPressing: false,
+        size: 10,
+        trail: []
+    };
 
-function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    player.x = W * 0.25;
-}
-
-function resetGame() {
-    isDead = false;
-    distance = 0;
-    frameCount = 0;
-    gameSpeed = 6;
-    gapSize = 320;
-    player.y = H / 2;
-    player.vy = 0;
-    player.trail = [];
     obstacles = [];
     particles = [];
-    decoration = [];
-    lastObstacleX = W;
-    
-    deathOverlay.style.display = 'none';
-    
-    // Initial Level Seed
-    for(let i = 0; i < 8; i++) {
-        createObstacle(W + (i * 400));
+    frames = 0;
+    score = 0;
+    difficulty = 1.0;
+    currentSpeed = 7;
+    cameraShake = 0;
+    gameActive = true;
+    deathScreen.style.display = 'none';
+
+    // Pre-generate floor and ceiling
+    generateInitialObstacles();
+    loop();
+}
+
+// --- INPUT HANDLERS ---
+const setPress = (val) => player.isPressing = val;
+window.onmousedown = () => setPress(true);
+window.onmouseup = () => setPress(false);
+window.ontouchstart = () => setPress(true);
+window.ontouchend = () => setPress(false);
+window.onkeydown = (e) => { if(e.code === 'Space') setPress(true); };
+window.onkeyup = (e) => { if(e.code === 'Space') setPress(false); };
+
+function spawnObstacle(x) {
+    // Advanced Procedural Logic
+    // Every 2000 points, it switches between "Wide", "Tight", and "Hallway"
+    const mode = Math.floor(score / 2000) % 3;
+    let gapHeight, gapCenter;
+
+    if (mode === 0) { // Wide
+        gapHeight = Math.max(250, 400 - (difficulty * 20));
+        gapCenter = (h/2) + (Math.sin(frames * 0.02) * (h/4));
+    } else if (mode === 1) { // Tight ZigZag
+        gapHeight = Math.max(180, 300 - (difficulty * 30));
+        gapCenter = (h/2) + (Math.sin(frames * 0.05) * (h/3));
+        statusEl.innerText = "STATUS: ZIG-ZAG PROTOCOL";
+    } else { // The Hallway (Bars)
+        gapHeight = 150;
+        gapCenter = h/2;
+        statusEl.innerText = "STATUS: NARROW HALLWAY";
+    }
+
+    obstacles.push({
+        x: x,
+        w: SETTINGS.obstacleWidth,
+        top: gapCenter - (gapHeight / 2),
+        bottom: gapCenter + (gapHeight / 2),
+        hue: (score / 10) % 360
+    });
+}
+
+function generateInitialObstacles() {
+    for (let i = 0; i < 6; i++) {
+        spawnObstacle(w + (i * SETTINGS.spawnRate));
     }
 }
 
-function createObstacle(x) {
-    const center = Math.random() * (H - 300) + 150;
-    const width = 80 + Math.random() * 40;
-    
-    obstacles.push({
-        x: x,
-        w: width,
-        top: center - (gapSize / 2),
-        bottom: center + (gapSize / 2),
-        type: Math.random() > 0.8 ? 'hazard' : 'normal',
-        hue: Math.random() * 60 + 180
-    });
-    lastObstacleX = x;
-}
-
-// Input Controllers
-window.addEventListener('mousedown', () => player.pressed = true);
-window.addEventListener('mouseup', () => player.pressed = false);
-window.addEventListener('keydown', (e) => { if(e.code === 'Space') player.pressed = true; });
-window.addEventListener('keyup', (e) => { if(e.code === 'Space') player.pressed = false; });
-window.addEventListener('touchstart', (e) => { e.preventDefault(); player.pressed = true; }, {passive: false});
-window.addEventListener('touchend', () => player.pressed = false);
-
 function update() {
-    if(isDead) return;
+    frames++;
+    score = Math.floor(frames / 5);
+    scoreEl.innerText = score;
 
-    frameCount++;
-    distance += gameSpeed / 10;
-    distEl.innerText = Math.floor(distance).toString().padStart(5, '0');
+    // Scaling Difficulty
+    difficulty = 1.0 + (score / 1000);
+    currentSpeed = 7 + (difficulty * 1.5);
 
-    // Difficulty Ramp
-    if (gameSpeed < MAX_SPEED) gameSpeed += 0.0015;
-    if (gapSize > MIN_GAP) gapSize -= 0.02;
+    // Physics
+    const accel = player.isPressing ? SETTINGS.baseLift : SETTINGS.baseGravity;
+    player.vy += accel * difficulty;
     
-    // Status updates
-    if (gameSpeed > 14) statusEl.innerText = "MODE: GODLIKE";
-    else if (gameSpeed > 10) statusEl.innerText = "MODE: HYPER-SPEED";
-    else statusEl.innerText = "MODE: STABLE";
-
-    // Player Physics
-    const accel = 0.7 + (gameSpeed / 40); // Harder to steer at high speed
-    if(player.pressed) player.vy -= accel;
-    else player.vy += accel;
+    // Terminal Velocity
+    if (player.vy > SETTINGS.maxVelocity) player.vy = SETTINGS.maxVelocity;
+    if (player.vy < -SETTINGS.maxVelocity) player.vy = -SETTINGS.maxVelocity;
     
     player.y += player.vy;
-    player.angle = Math.atan2(player.vy, gameSpeed);
 
-    // Trail Management
+    // Trail logic (Relative to world movement)
     player.trail.push({ x: player.x, y: player.y });
-    player.trail.forEach(p => p.x -= gameSpeed);
-    if(player.trail.length > 120) player.trail.shift();
+    player.trail.forEach(p => p.x -= currentSpeed);
+    if (player.trail.length > 100) player.trail.shift();
 
-    // Obstacle Logic
+    // Bounds check
+    if (player.y < 0 || player.y > h) endGame();
+
+    // Obstacles movement & collision
     obstacles.forEach(o => {
-        o.x -= gameSpeed;
+        o.x -= currentSpeed;
 
-        // Collision Engine (Precision Box)
-        if (player.x + player.size > o.x && player.x - player.size < o.x + o.w) {
-            if (player.y - player.size < o.top || player.y + player.size > o.bottom) {
-                triggerDeath();
+        // Collision Check (AABB with buffer)
+        if (player.x + 8 > o.x && player.x - 8 < o.x + o.w) {
+            if (player.y - 8 < o.top || player.y + 8 > o.bottom) {
+                endGame();
             }
         }
     });
 
-    // Infinite Generator
-    if(obstacles[0].x < -200) {
+    // Cleanup and Respawn
+    if (obstacles.length > 0 && obstacles[0].x < -SETTINGS.obstacleWidth) {
         obstacles.shift();
-        createObstacle(lastObstacleX + 400 + Math.random() * 50);
+        const lastX = obstacles[obstacles.length - 1].x;
+        spawnObstacle(lastX + SETTINGS.spawnRate);
     }
-
-    // Border Death
-    if(player.y < 0 || player.y > H) triggerDeath();
-
-    // Particle FX
-    if(frameCount % 2 === 0) {
-        particles.push({
-            x: player.x - 10,
-            y: player.y,
-            vx: -Math.random() * 5,
-            vy: (Math.random() - 0.5) * 4,
-            life: 1.0
-        });
-    }
-    particles.forEach(p => {
-        p.x += p.vx - gameSpeed;
-        p.y += p.vy;
-        p.life -= 0.02;
-    });
-    particles = particles.filter(p => p.life > 0);
 }
 
 function draw() {
-    // 1. Background Layer
-    ctx.fillStyle = '#020205';
-    ctx.fillRect(0, 0, W, H);
+    // Background
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid (Gus MacRhodes style)
+    ctx.strokeStyle = `hsla(${(score/5)%360}, 50%, 50%, 0.1)`;
+    ctx.lineWidth = 2;
+    let offset = (frames * currentSpeed) % 100;
+    for (let x = -offset; x < w; x += 100) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+
+    // Draw Trail (Neon Wave)
+    if (player.trail.length > 2) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#f0f';
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#f0f';
+        ctx.moveTo(player.trail[0].x, player.trail[0].y);
+        for(let i = 1; i < player.trail.length; i++) {
+            ctx.lineTo(player.trail[i].x, player.trail[i].y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // Draw Obstacles
+    obstacles.forEach(o => {
+        const grd = ctx.createLinearGradient(o.x, 0, o.x + o.w, 0);
+        grd.addColorStop(0, '#111');
+        grd.addColorStop(0.5, '#222');
+        grd.addColorStop(1, '#111');
+        
+        ctx.fillStyle = grd;
+        ctx.strokeStyle = `hsl(${o.hue}, 100%, 50%)`;
+        ctx.lineWidth = 3;
+
+        // Top Block
+        ctx.fillRect(o.x, 0, o.w, o.top);
+        ctx.strokeRect(o.x, -10, o.w, o.top + 10);
+
+        // Bottom Block
+        ctx.fillRect(o.x, o.bottom, o.w, h - o.bottom);
+        ctx.strokeRect(o.x, o.bottom, o.w, h - o.bottom + 10);
+        
+        // Add "Triangles" inside
+        ctx.fillStyle = `hsla(${o.hue}, 100%, 50%, 0.2)`;
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.top); ctx.lineTo(o.x + o.w/2, o.top - 30); ctx.lineTo(o.x + o.w, o.top);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.bottom); ctx.lineTo(o.x + o.w/2, o.bottom + 30); ctx.lineTo(o.x + o.w, o.bottom);
+        ctx.fill();
+    });
+
+    // Draw Player (The Arrow)
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(Math.atan2(player.vy, currentSpeed));
     
-    // Parallax Grid
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#0ff';
+    ctx.beginPath();
+    ctx.moveTo(20, 0);
+    ctx.lineTo(-15, -15);
+    ctx.lineTo(-15, 15);
+    ctx.fill();
+    ctx.restore();
+}
+
+function endGame() {
+    gameActive = false;
+    deathScreen.style.display = 'block';
+}
+
+function resetGame() {
+    init();
+}
+
+function loop() {
+    if (!gameActive) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+// Start Engine
+window.onload = init;
+window.onresize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+
+</script>
+</body>
+</html>
