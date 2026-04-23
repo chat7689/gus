@@ -65,11 +65,9 @@ let W, H;
 let frame = 0;
 let state = 'START'; 
 
+// Only cycling between Neon Gates and Gravity Flux now
 const BIOMES = [
     { name: "NEON GATES", color: '#00e5ff', type: 'gap' },
-    { name: "ORBITAL CLUSTER", color: '#00ff66', type: 'circle' },
-    { name: "GEOMETRIC TRENCH", color: '#ffaa00', type: 'triangle' },
-    { name: "SAWBLADE ALLEY", color: '#ff0055', type: 'saw' },
     { name: "GRAVITY FLUX", color: '#b200ff', type: 'portal' }
 ];
 
@@ -177,7 +175,6 @@ function spawnObstacles() {
         const biome = BIOMES[game.spawnBiomeIdx];
         const gapY = 180 + Math.random() * (H - 360); 
         const x = game.nextSpawnX;
-        const diffMultiplier = game.distance * 0.00003; 
         
         let startLen = obstacles.length; // Track length to assign biome marker later
 
@@ -186,29 +183,6 @@ function spawnObstacles() {
             obstacles.push({ type: 'rect', x: x, y: 0, w: 70, h: gapY - (gapSize/2) }); 
             obstacles.push({ type: 'rect', x: x, y: gapY + (gapSize/2), w: 70, h: H }); 
         } 
-        else if (biome.type === 'circle') {
-            const bigRadius = 55 + Math.random() * 45;
-            const bob = (Math.random() * 0.04 + 0.02) + diffMultiplier;
-            obstacles.push({ type: 'circle', x: x, y: gapY, r: bigRadius, bobY: gapY, bobSpd: bob });
-            
-            if (Math.random() > Math.max(0.2, 0.6 - diffMultiplier * 10)) {
-                obstacles.push({ type: 'circle', x: x + 160, y: gapY + (Math.random()*300-150), r: 40, bobY: gapY, bobSpd: bob * 0.5 });
-            }
-        }
-        else if (biome.type === 'triangle') {
-            const fastSpin = (Math.random() > 0.5 ? 1 : -1) * (0.06 + Math.random() * 0.05 + diffMultiplier * 2);
-            obstacles.push({ type: 'tri', x: x, y: gapY, r: 85, angle: Math.random() * Math.PI, spin: fastSpin });
-            if (Math.random() > 0.4) obstacles.push({ type: 'tri', x: x + 180, y: gapY + (Math.random()*200-100), r: 50, angle: Math.random() * Math.PI, spin: fastSpin * 1.5 });
-        }
-        else if (biome.type === 'saw') {
-            const sawSpd = 0.08 + diffMultiplier * 2;
-            if (Math.random() > 0.5) {
-                obstacles.push({ type: 'saw', x: x, y: 0, r: 110, angle: 0, spin: sawSpd });
-                obstacles.push({ type: 'saw', x: x, y: H, r: 110, angle: 0, spin: sawSpd });
-            } else {
-                obstacles.push({ type: 'saw', x: x, y: gapY, r: 90, angle: 0, spin: sawSpd });
-            }
-        }
         else if (biome.type === 'portal') {
             const portGap = Math.max(250, 400 - (game.distance * 0.02));
             obstacles.push({ type: 'portal', x: x, y: gapY, r: 70, used: false });
@@ -250,7 +224,7 @@ function updateAndDrawObstacles() {
             continue; // Don't draw the marker
         }
 
-        // Obstacles now lock to their spawned color, not the current UI color!
+        // Obstacles now lock to their spawned color
         const col = BIOMES[o.biomeIdx].color;
         ctx.strokeStyle = col; ctx.fillStyle = '#050508'; ctx.lineWidth = 5;
         ctx.shadowBlur = 15; ctx.shadowColor = col;
@@ -260,38 +234,6 @@ function updateAndDrawObstacles() {
             if (player.x + player.size > o.x && player.x - player.size < o.x + o.w &&
                 player.y + player.size > o.y && player.y - player.size < o.y + o.h) { die(); }
         } 
-        else if (o.type === 'circle') {
-            if (o.bobSpd > 0) o.y = o.bobY + Math.sin(frame * o.bobSpd) * 80; 
-            ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r + player.size) die();
-        }
-        else if (o.type === 'tri') {
-            o.angle += o.spin;
-            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.angle);
-            ctx.beginPath(); ctx.moveTo(0, -o.r); ctx.lineTo(o.r*0.866, o.r*0.5); ctx.lineTo(-o.r*0.866, o.r*0.5); ctx.closePath();
-            ctx.fill(); ctx.stroke(); ctx.restore();
-            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r * 0.75 + player.size) die();
-        }
-        else if (o.type === 'saw') {
-            o.angle += o.spin;
-            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.angle);
-            
-            // Draw central hub
-            ctx.beginPath(); ctx.arc(0, 0, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            
-            // BATCH RENDER: Draws all 8 teeth in a single continuous stroke to prevent lag
-            ctx.beginPath();
-            for(let t=0; t<8; t++) { 
-                ctx.rotate(Math.PI / 4); 
-                ctx.moveTo(o.r, -15); 
-                ctx.lineTo(o.r+20, 0); 
-                ctx.lineTo(o.r, 15); 
-            }
-            ctx.stroke(); 
-            
-            ctx.restore();
-            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r + player.size) die();
-        }
         else if (o.type === 'portal') {
             ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(frame * 0.05);
             ctx.strokeStyle = '#b200ff'; ctx.shadowColor = '#b200ff';
@@ -366,7 +308,8 @@ function loop() {
         frame++;
         
         if (state === 'PLAY') {
-            game.speed = 9 + (game.distance / 1200); 
+            // SPEED INCREASE OVER TIME RAMPED UP
+            game.speed = 9 + (game.distance / 600); // Ramps up twice as fast as before
             game.distance += game.speed / 10;
             game.nextSpawnX -= game.speed; 
             
