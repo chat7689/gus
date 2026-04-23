@@ -210,7 +210,6 @@ function spawnObstacles() {
             }
         }
         else if (biome.type === 'portal') {
-            // WIDENED PORTAL GAP TO MAKE IT MUCH EASIER
             const portGap = Math.max(250, 400 - (game.distance * 0.02));
             obstacles.push({ type: 'portal', x: x, y: gapY, r: 70, used: false });
             obstacles.push({ type: 'rect', x: x, y: 0, w: 50, h: gapY - portGap }); 
@@ -222,7 +221,14 @@ function spawnObstacles() {
             obstacles[i].biomeIdx = game.spawnBiomeIdx;
         }
 
+        // Determine spacing for the NEXT obstacle
         let spacing = Math.max(200, 650 - (game.distance * 0.08));
+        
+        // Massive horizontal spacing increase specifically for portals
+        if (biome.type === 'portal') {
+            spacing *= 3.5; 
+        }
+
         game.nextSpawnX += spacing;
     }
 }
@@ -269,8 +275,20 @@ function updateAndDrawObstacles() {
         else if (o.type === 'saw') {
             o.angle += o.spin;
             ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.angle);
+            
+            // Draw central hub
             ctx.beginPath(); ctx.arc(0, 0, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            for(let t=0; t<8; t++) { ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.moveTo(o.r, -15); ctx.lineTo(o.r+20, 0); ctx.lineTo(o.r, 15); ctx.stroke(); }
+            
+            // BATCH RENDER: Draws all 8 teeth in a single continuous stroke to prevent lag
+            ctx.beginPath();
+            for(let t=0; t<8; t++) { 
+                ctx.rotate(Math.PI / 4); 
+                ctx.moveTo(o.r, -15); 
+                ctx.lineTo(o.r+20, 0); 
+                ctx.lineTo(o.r, 15); 
+            }
+            ctx.stroke(); 
+            
             ctx.restore();
             if (Math.hypot(player.x - o.x, player.y - o.y) < o.r + player.size) die();
         }
