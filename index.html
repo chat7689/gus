@@ -210,7 +210,8 @@ function spawnObstacles() {
             }
         }
         else if (biome.type === 'portal') {
-            const portGap = Math.max(100, 200 - (game.distance * 0.02));
+            // WIDENED PORTAL GAP TO MAKE IT MUCH EASIER
+            const portGap = Math.max(250, 400 - (game.distance * 0.02));
             obstacles.push({ type: 'portal', x: x, y: gapY, r: 70, used: false });
             obstacles.push({ type: 'rect', x: x, y: 0, w: 50, h: gapY - portGap }); 
             obstacles.push({ type: 'rect', x: x, y: gapY + portGap, w: 50, h: H });
