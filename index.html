@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GUS MACRHODES: APEX</title>
+    <title>GUS MACRHODES: SYNC EDITION</title>
     <style>
-        :root { --neon: #00e5ff; --accent: #ff0055; --bg: #050508; }
+        :root { --neon: #00e5ff; --accent: #ff0055; --bg: #000000; }
         * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); font-family: 'Courier New', Courier, monospace; color: white; user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: white; user-select: none; }
         canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 30px; }
         
         .hud-top { display: flex; gap: 20px; }
-        .hud-box { background: rgba(0,0,0,0.6); border-left: 4px solid var(--neon); padding: 10px 20px; text-transform: uppercase; }
-        .hud-lbl { font-size: 12px; color: #888; letter-spacing: 2px; margin-bottom: 5px; }
-        .hud-val { font-size: 32px; font-weight: 900; text-shadow: 0 0 10px currentColor; }
+        .hud-box { background: rgba(10, 10, 15, 0.4); border-left: 4px solid var(--neon); padding: 12px 25px; text-transform: uppercase; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 0 8px 8px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.5); transition: border-color 0.3s ease; }
+        .hud-lbl { font-size: 11px; color: #aaa; letter-spacing: 3px; margin-bottom: 5px; font-weight: bold; }
+        .hud-val { font-size: 36px; font-weight: 900; text-shadow: 0 0 15px currentColor; letter-spacing: 2px; font-variant-numeric: tabular-nums; transition: color 0.3s ease; }
         
-        #screens { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
-        h1 { font-size: 60px; margin: 0; text-shadow: 0 0 20px currentColor; letter-spacing: 5px; text-transform: uppercase; }
-        p { font-size: 18px; color: #aaa; letter-spacing: 2px; }
+        #screens { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(10,10,15,0.8) 0%, rgba(0,0,0,0.95) 100%); backdrop-filter: blur(10px); transition: opacity 0.3s; }
+        h1 { font-size: 70px; margin: 0; text-shadow: 0 0 30px currentColor; letter-spacing: 8px; text-transform: uppercase; font-weight: 900; text-align: center; }
+        p { font-size: 20px; color: #ccc; letter-spacing: 4px; margin-top: 10px; text-align: center; }
         
-        button { pointer-events: auto; background: transparent; border: 2px solid var(--neon); color: var(--neon); padding: 15px 40px; font-size: 20px; font-weight: bold; font-family: inherit; cursor: pointer; transition: 0.2s; letter-spacing: 2px; margin-top: 20px; text-transform: uppercase; }
-        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 30px var(--neon); }
+        button { pointer-events: auto; background: rgba(0,0,0,0.5); border: 2px solid var(--neon); color: var(--neon); padding: 18px 50px; font-size: 22px; font-weight: bold; font-family: inherit; cursor: pointer; transition: all 0.2s ease-out; letter-spacing: 3px; margin-top: 40px; text-transform: uppercase; border-radius: 4px; }
+        button:hover { background: var(--neon); color: #000; box-shadow: 0 0 40px var(--neon); transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -33,7 +34,7 @@
             <div class="hud-lbl">DISTANCE</div>
             <div id="dist-display" class="hud-val" style="color: var(--neon);">0M</div>
         </div>
-        <div class="hud-box" style="border-color: var(--accent);">
+        <div class="hud-box" id="biome-box" style="border-color: var(--accent);">
             <div class="hud-lbl">SECTOR</div>
             <div id="biome-display" class="hud-val" style="color: var(--accent);">NEON GATES</div>
         </div>
@@ -42,7 +43,7 @@
 
 <div id="screens">
     <h1 id="screen-title" style="color: var(--neon);">GUS MACRHODES</h1>
-    <p id="screen-sub">SYSTEM INITIALIZED</p>
+    <p id="screen-sub">ESCALATION PROTOCOL</p>
     <button id="start-btn">ENGAGE THRUSTERS</button>
 </div>
 
@@ -58,6 +59,7 @@ const screenSub = document.getElementById('screen-sub');
 const startBtn = document.getElementById('start-btn');
 const distDisplay = document.getElementById('dist-display');
 const biomeDisplay = document.getElementById('biome-display');
+const biomeBox = document.getElementById('biome-box');
 
 let W, H;
 let frame = 0;
@@ -67,21 +69,40 @@ const BIOMES = [
     { name: "NEON GATES", color: '#00e5ff', type: 'gap' },
     { name: "ORBITAL CLUSTER", color: '#00ff66', type: 'circle' },
     { name: "GEOMETRIC TRENCH", color: '#ffaa00', type: 'triangle' },
+    { name: "SAWBLADE ALLEY", color: '#ff0055', type: 'saw' },
     { name: "GRAVITY FLUX", color: '#b200ff', type: 'portal' }
 ];
 
-let game = { speed: 8, distance: 0, biomeIdx: 0, nextSpawnX: 0 };
+// Separated spawn biome from UI biome
+let game = { speed: 8, distance: 0, spawnBiomeIdx: 0, uiBiomeIdx: 0, nextSpawnX: 0, screenShake: 0, nextBiomeDist: 800 };
+
+// --- STARS ---
+const stars = [];
+for(let i=0; i<150; i++) {
+    stars.push({ x: Math.random(), y: Math.random(), size: Math.random() * 2, speed: Math.random() * 0.5 + 0.1 });
+}
+
+function drawStars() {
+    ctx.fillStyle = '#fff';
+    for(let s of stars) {
+        let sx = (s.x * W - (game.distance * s.speed * 10)) % W;
+        if (sx < 0) sx += W;
+        ctx.globalAlpha = s.speed;
+        ctx.fillRect(sx, s.y * H, s.size, s.size);
+    }
+    ctx.globalAlpha = 1.0;
+}
 
 // --- PARTICLES ---
 const particles = [];
-function spawnParticles(x, y, color, count, speed, isExplosion = false) {
+function spawnParticles(x, y, color, count, speed, type = 'spark') {
     for(let i=0; i<count; i++) {
-        if (particles.length > 300) particles.shift(); 
+        if (particles.length > 350) particles.shift(); 
         particles.push({
             x, y,
-            vx: (Math.random() - 0.5) * speed * (isExplosion ? 2 : 1) - (isExplosion ? 0 : game.speed * 0.5),
+            vx: (Math.random() - 0.5) * speed * (type === 'explode' ? 2 : 1) - (type === 'spark' ? game.speed * 0.6 : 0),
             vy: (Math.random() - 0.5) * speed,
-            life: 1.0, decay: 0.02 + Math.random() * 0.03, color, size: Math.random() * 3 + 1
+            life: 1.0, decay: 0.015 + Math.random() * 0.03, color, size: Math.random() * 3 + 1.5
         });
     }
 }
@@ -103,7 +124,7 @@ function drawParticles() {
 
 // --- PLAYER ---
 const player = {
-    x: 0, y: 0, vy: 0, size: 10, pressing: false, gravDir: 1, trail: [],
+    x: 0, y: 0, vy: 0, size: 6, pressing: false, gravDir: 1, trail: [],
     
     reset() {
         this.x = W * 0.2; this.y = H / 2; this.vy = 0;
@@ -111,35 +132,39 @@ const player = {
     },
     
     update() {
-        const force = 0.8;
+        const force = 0.85; 
         this.vy += this.pressing ? (-force * this.gravDir) : (force * this.gravDir);
         
-        if (this.vy > 12) this.vy = 12; if (this.vy < -12) this.vy = -12;
+        if (this.vy > 14) this.vy = 14; if (this.vy < -14) this.vy = -14;
         this.y += this.vy;
 
         this.trail.push({ x: this.x, y: this.y });
         for(let i=0; i<this.trail.length; i++) this.trail[i].x -= game.speed;
-        if (this.trail.length > 100) this.trail.shift();
+        this.trail = this.trail.filter(p => p.x > -50);
 
-        if (frame % 3 === 0) spawnParticles(this.x - 10, this.y, '#fff', 2, 4, false);
+        if (frame % 2 === 0) spawnParticles(this.x - 8, this.y, '#ffffff', 2, 5, 'spark');
         if (this.y < 0 || this.y > H) die();
     },
     
     draw() {
-        const pCol = this.gravDir === 1 ? BIOMES[game.biomeIdx].color : '#b200ff';
+        // Player always matches the currently visible UI biome
+        const pCol = this.gravDir === 1 ? BIOMES[game.uiBiomeIdx].color : '#b200ff';
 
         if (this.trail.length > 1) {
             ctx.beginPath(); ctx.strokeStyle = pCol; ctx.lineWidth = 3;
+            ctx.shadowBlur = 10; ctx.shadowColor = pCol;
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
             for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
-            ctx.stroke();
+            ctx.stroke(); ctx.shadowBlur = 0;
         }
 
         ctx.save(); ctx.translate(this.x, this.y); ctx.scale(1, this.gravDir);
         ctx.rotate(Math.atan2(this.vy * this.gravDir, game.speed));
         
-        ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = pCol;
-        ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.shadowBlur = 20; ctx.shadowColor = pCol;
+        ctx.beginPath(); 
+        ctx.moveTo(12, 0); ctx.lineTo(-8, -8); ctx.lineTo(-4, 0); ctx.lineTo(-8, 8); 
+        ctx.fill();
         ctx.restore();
     }
 };
@@ -148,42 +173,80 @@ const player = {
 let obstacles = [];
 
 function spawnObstacles() {
-    // THIS is the key fix. It will loop and continually generate obstacles until the buffer ahead of the player is full.
-    while (game.nextSpawnX < W + 400) {
-        const biome = BIOMES[game.biomeIdx];
-        const gapY = 150 + Math.random() * (H - 300); 
+    while (game.nextSpawnX < W + 800) {
+        const biome = BIOMES[game.spawnBiomeIdx];
+        const gapY = 180 + Math.random() * (H - 360); 
         const x = game.nextSpawnX;
+        const diffMultiplier = game.distance * 0.00003; 
+        
+        let startLen = obstacles.length; // Track length to assign biome marker later
 
         if (biome.type === 'gap') {
-            obstacles.push({ type: 'rect', x: x, y: 0, w: 60, h: gapY - 100 }); 
-            obstacles.push({ type: 'rect', x: x, y: gapY + 100, w: 60, h: H }); 
+            const gapSize = Math.max(70, 300 - (game.distance * 0.06));
+            obstacles.push({ type: 'rect', x: x, y: 0, w: 70, h: gapY - (gapSize/2) }); 
+            obstacles.push({ type: 'rect', x: x, y: gapY + (gapSize/2), w: 70, h: H }); 
         } 
         else if (biome.type === 'circle') {
-            obstacles.push({ type: 'circle', x: x, y: gapY, r: 50 });
-            if (Math.random() > 0.5) obstacles.push({ type: 'circle', x: x + 100, y: gapY + (Math.random()*200-100), r: 30 });
+            const bigRadius = 55 + Math.random() * 45;
+            const bob = (Math.random() * 0.04 + 0.02) + diffMultiplier;
+            obstacles.push({ type: 'circle', x: x, y: gapY, r: bigRadius, bobY: gapY, bobSpd: bob });
+            
+            if (Math.random() > Math.max(0.2, 0.6 - diffMultiplier * 10)) {
+                obstacles.push({ type: 'circle', x: x + 160, y: gapY + (Math.random()*300-150), r: 40, bobY: gapY, bobSpd: bob * 0.5 });
+            }
         }
         else if (biome.type === 'triangle') {
-            obstacles.push({ type: 'tri', x: x, y: gapY, r: 70, angle: Math.random() * Math.PI, spin: 0.05 });
+            const fastSpin = (Math.random() > 0.5 ? 1 : -1) * (0.06 + Math.random() * 0.05 + diffMultiplier * 2);
+            obstacles.push({ type: 'tri', x: x, y: gapY, r: 85, angle: Math.random() * Math.PI, spin: fastSpin });
+            if (Math.random() > 0.4) obstacles.push({ type: 'tri', x: x + 180, y: gapY + (Math.random()*200-100), r: 50, angle: Math.random() * Math.PI, spin: fastSpin * 1.5 });
+        }
+        else if (biome.type === 'saw') {
+            const sawSpd = 0.08 + diffMultiplier * 2;
+            if (Math.random() > 0.5) {
+                obstacles.push({ type: 'saw', x: x, y: 0, r: 110, angle: 0, spin: sawSpd });
+                obstacles.push({ type: 'saw', x: x, y: H, r: 110, angle: 0, spin: sawSpd });
+            } else {
+                obstacles.push({ type: 'saw', x: x, y: gapY, r: 90, angle: 0, spin: sawSpd });
+            }
         }
         else if (biome.type === 'portal') {
-            obstacles.push({ type: 'portal', x: x, y: gapY, r: 60, used: false });
-            obstacles.push({ type: 'rect', x: x, y: 0, w: 40, h: gapY - 100 }); 
-            obstacles.push({ type: 'rect', x: x, y: gapY + 100, w: 40, h: H });
+            const portGap = Math.max(100, 200 - (game.distance * 0.02));
+            obstacles.push({ type: 'portal', x: x, y: gapY, r: 70, used: false });
+            obstacles.push({ type: 'rect', x: x, y: 0, w: 50, h: gapY - portGap }); 
+            obstacles.push({ type: 'rect', x: x, y: gapY + portGap, w: 50, h: H });
         }
 
-        let spacing = Math.max(250, 600 - (game.distance * 0.1));
+        // Assign the strict biome index to the obstacles we just pushed
+        for(let i = startLen; i < obstacles.length; i++) {
+            obstacles[i].biomeIdx = game.spawnBiomeIdx;
+        }
+
+        let spacing = Math.max(200, 650 - (game.distance * 0.08));
         game.nextSpawnX += spacing;
     }
 }
 
 function updateAndDrawObstacles() {
-    const col = BIOMES[game.biomeIdx].color;
-    ctx.strokeStyle = col; ctx.fillStyle = '#0a0a0f'; ctx.lineWidth = 4;
-    ctx.shadowBlur = 10; ctx.shadowColor = col;
-
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let o = obstacles[i];
         o.x -= game.speed;
+
+        // INVISIBLE SYNC MARKER: Triggers when the new biome actually enters the screen
+        if (o.type === 'transition') {
+            if (o.x < W * 0.6) { 
+                game.uiBiomeIdx = o.biomeIdx;
+                updateBiomeUI();
+                game.screenShake = 12;
+                spawnParticles(W/2, H/2, BIOMES[game.uiBiomeIdx].color, 120, 30, 'explode');
+                obstacles.splice(i, 1);
+            }
+            continue; // Don't draw the marker
+        }
+
+        // Obstacles now lock to their spawned color, not the current UI color!
+        const col = BIOMES[o.biomeIdx].color;
+        ctx.strokeStyle = col; ctx.fillStyle = '#050508'; ctx.lineWidth = 5;
+        ctx.shadowBlur = 15; ctx.shadowColor = col;
 
         if (o.type === 'rect') {
             ctx.fillRect(o.x, o.y, o.w, o.h); ctx.strokeRect(o.x, o.y, o.w, o.h);
@@ -191,6 +254,7 @@ function updateAndDrawObstacles() {
                 player.y + player.size > o.y && player.y - player.size < o.y + o.h) { die(); }
         } 
         else if (o.type === 'circle') {
+            if (o.bobSpd > 0) o.y = o.bobY + Math.sin(frame * o.bobSpd) * 80; 
             ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
             if (Math.hypot(player.x - o.x, player.y - o.y) < o.r + player.size) die();
         }
@@ -199,21 +263,32 @@ function updateAndDrawObstacles() {
             ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.angle);
             ctx.beginPath(); ctx.moveTo(0, -o.r); ctx.lineTo(o.r*0.866, o.r*0.5); ctx.lineTo(-o.r*0.866, o.r*0.5); ctx.closePath();
             ctx.fill(); ctx.stroke(); ctx.restore();
-            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r * 0.7 + player.size) die();
+            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r * 0.75 + player.size) die();
+        }
+        else if (o.type === 'saw') {
+            o.angle += o.spin;
+            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.angle);
+            ctx.beginPath(); ctx.arc(0, 0, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            for(let t=0; t<8; t++) { ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.moveTo(o.r, -15); ctx.lineTo(o.r+20, 0); ctx.lineTo(o.r, 15); ctx.stroke(); }
+            ctx.restore();
+            if (Math.hypot(player.x - o.x, player.y - o.y) < o.r + player.size) die();
         }
         else if (o.type === 'portal') {
             ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(frame * 0.05);
             ctx.strokeStyle = '#b200ff'; ctx.shadowColor = '#b200ff';
             ctx.beginPath(); ctx.arc(0,0, o.r, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = '#b200ff';
+            ctx.beginPath(); ctx.moveTo(-20, -20); ctx.lineTo(20, -20); ctx.lineTo(0, 25); ctx.fill();
             ctx.restore();
 
             if (!o.used && Math.hypot(player.x - o.x, player.y - o.y) < o.r) {
                 o.used = true; player.gravDir *= -1; 
-                spawnParticles(o.x, o.y, '#b200ff', 50, 15, true);
+                game.screenShake = 10;
+                spawnParticles(o.x, o.y, '#b200ff', 60, 18, 'explode');
             }
         }
 
-        if (o.x < -200) obstacles.splice(i, 1);
+        if (o.x < -300) obstacles.splice(i, 1);
     }
     ctx.shadowBlur = 0; 
 }
@@ -224,63 +299,87 @@ window.addEventListener('resize', resize);
 
 function initGame() {
     state = 'PLAY'; screens.style.display = 'none';
-    game.speed = 8; game.distance = 0; game.biomeIdx = 0; game.nextSpawnX = W; 
-    obstacles = []; particles.length = 0; player.reset(); updateUI();
+    game.speed = 9; game.distance = 0; 
+    game.spawnBiomeIdx = 0; game.uiBiomeIdx = 0; 
+    game.nextSpawnX = W; game.screenShake = 0; game.nextBiomeDist = 800; 
+    obstacles = []; particles.length = 0; player.reset(); 
+    updateBiomeUI();
 }
 
 function die() {
     if (state === 'DEAD') return;
-    state = 'DEAD';
-    spawnParticles(player.x, player.y, '#ff0055', 100, 20, true);
-    screens.style.display = 'flex'; screenTitle.innerText = "HULL BREACH"; screenTitle.style.color = "var(--accent)";
-    screenSub.innerText = `FINAL DISTANCE: ${Math.floor(game.distance)}M`; startBtn.innerText = "REBOOT SYSTEM";
+    state = 'DEAD'; game.screenShake = 20;
+    spawnParticles(player.x, player.y, '#ff0055', 150, 25, 'explode');
+    
+    setTimeout(() => {
+        screens.style.display = 'flex'; 
+        screenTitle.innerText = "HULL DESTROYED"; 
+        screenTitle.style.color = "var(--accent)";
+        screenSub.innerText = `FINAL FLIGHT: ${Math.floor(game.distance)}M`; 
+        startBtn.innerText = "INITIALIZE REBOOT";
+    }, 1000);
 }
 
-function updateUI() {
-    distDisplay.innerText = Math.floor(game.distance) + "M";
-    biomeDisplay.innerText = BIOMES[game.biomeIdx].name;
-    biomeDisplay.style.color = BIOMES[game.biomeIdx].color;
+function updateBiomeUI() {
+    biomeDisplay.innerText = BIOMES[game.uiBiomeIdx].name;
+    biomeDisplay.style.color = BIOMES[game.uiBiomeIdx].color;
+    biomeBox.style.borderColor = BIOMES[game.uiBiomeIdx].color;
 }
 
 // --- MAIN LOOP ---
 function loop() {
     requestAnimationFrame(loop);
-    ctx.fillStyle = 'var(--bg)'; ctx.fillRect(0, 0, W, H);
+    
+    ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, W, H);
 
-    if (state === 'PLAY') {
+    if (game.screenShake > 0) {
+        ctx.save();
+        const dx = (Math.random() - 0.5) * game.screenShake;
+        const dy = (Math.random() - 0.5) * game.screenShake;
+        ctx.translate(dx, dy);
+        game.screenShake *= 0.9;
+        if (game.screenShake < 0.5) game.screenShake = 0;
+    }
+
+    drawStars();
+
+    if (state === 'PLAY' || state === 'DEAD') {
         frame++;
-        game.speed = 8 + (game.distance / 1000); 
-        game.distance += game.speed / 10;
         
-        // This makes sure the spawner moves backwards with the screen
-        game.nextSpawnX -= game.speed; 
-        
-        let currentTargetBiome = Math.floor(game.distance / 2000) % BIOMES.length;
-        if (currentTargetBiome !== game.biomeIdx) {
-            game.biomeIdx = currentTargetBiome;
-            game.nextSpawnX += W * 0.8; // Create a safe gap for the biome transition
-            spawnParticles(W/2, H/2, BIOMES[game.biomeIdx].color, 50, 20, true);
+        if (state === 'PLAY') {
+            game.speed = 9 + (game.distance / 1200); 
+            game.distance += game.speed / 10;
+            game.nextSpawnX -= game.speed; 
+            
+            distDisplay.innerText = Math.floor(game.distance) + "M";
+            
+            // SPAWNER UPDATE - We drop a marker but DON'T update UI yet
+            if (game.distance >= game.nextBiomeDist) {
+                game.spawnBiomeIdx = (game.spawnBiomeIdx + 1) % BIOMES.length;
+                game.nextBiomeDist += 800; 
+                
+                game.nextSpawnX += W * 0.8; // Creates the safe gap between zones
+                
+                // Drop the invisible timeline marker just before the new obstacles
+                obstacles.push({ type: 'transition', x: game.nextSpawnX - 150, biomeIdx: game.spawnBiomeIdx });
+            }
+
+            spawnObstacles();
+            player.update();
         }
 
-        ctx.strokeStyle = BIOMES[game.biomeIdx].color; ctx.globalAlpha = 0.1;
-        let offset = (frame * (game.speed * 0.5)) % 100;
-        for(let x = -offset; x < W; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-        ctx.globalAlpha = 1.0;
-
-        spawnObstacles();
         updateAndDrawObstacles();
-        player.update();
-        player.draw();
-        
-        if (frame % 10 === 0) updateUI();
+        if (state === 'PLAY') player.draw();
+        drawParticles();
     }
     
-    drawParticles();
+    if (game.screenShake > 0) ctx.restore();
 }
 
 // --- CONTROLS ---
 const setPress = (v) => { if(state === 'PLAY') player.pressing = v; };
-window.addEventListener('mousedown', () => setPress(true)); window.addEventListener('mouseup', () => setPress(false));
+window.addEventListener('mousedown', () => setPress(true)); 
+window.addEventListener('mouseup', () => setPress(false));
 window.addEventListener('keydown', (e) => { if(e.code === 'Space') setPress(true); });
 window.addEventListener('keyup', (e) => { if(e.code === 'Space') setPress(false); });
 window.addEventListener('touchstart', (e) => { e.preventDefault(); setPress(true); }, {passive: false});
@@ -290,7 +389,6 @@ startBtn.addEventListener('click', initGame);
 // --- START ---
 resize();
 loop();
-
 </script>
 </body>
 </html>
